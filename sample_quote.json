@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "client": "Alicorp",
+    "brand": "Sapolio",
+    "requirement": "Diseño de Ganchera Display",
+    "date": "2024-08-08 00:00:00",
+    "businessName": "Purple BTL S.A.C.",
+    "paymentConditions": "30 días de crédito."
+  },
+  "categories": [
+    {
+      "name": "DISEÑOS",
+      "items": [
+        {
+          "name": "Ganchera Display",
+          "quantity": 1.0,
+          "dates": 1.0,
+          "details": [
+            "- Diseño de Ganchera Display para Sapolio.",
+            "- Productos a mostrar: Lejía Cloro, Lavajilla Sapolio, Limpiatodo Sapolio.",
+            "- Se considera un máximo de 3 cambios.",
+            "- Entrega de diseño en alta y editable."
+          ],
+          "internalMultiplierPercent": 10.0,
+          "financialExpensePercent": 10.0,
+          "providerContact": "",
+          "productionTime": "",
+          "subItems": [
+            {
+              "name": "Ganchera Display",
+              "description": "",
+              "quantity": 1.0,
+              "dates": 1.0,
+              "unitCost": 0.0,
+              "providerName": ""
+            },
+            {
+              "name": "Imprevistos",
+              "description": "",
+              "quantity": 1,
+              "dates": 1,
+              "unitCost": 0.0,
+              "providerName": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+node_modules
+# Keep environment variables out of version control
+.env
+.env.*
+!.env.example
+
+# Sensitive credentials & tokens
+*credentials*.json
+*token*.json
+google-credentials.json
+google-calendar-tokens.json
+
+# Backups & Databases
+*.sqlite
+*.sqlite3
+*.db
+backups/
+uploads/SIG_Purple_Backup_*.json
+
+/generated/prisma
+

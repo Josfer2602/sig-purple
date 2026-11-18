@@ -1,0 +1,34 @@
+const { Client } = require('ssh2');
+require('dotenv').config({ path: '.env.deploy' });
+
+const conn = new Client();
+conn.on('ready', () => {
+  conn.exec(`
+    cd /var/www/sigpurple/api
+    node -e "
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      prisma.user.updateMany({
+        where: { email: 'jose.narva@purplebtl.com' },
+        data: {
+          smtpHost: 'smtp.gmail.com',
+          smtpPort: 587,
+          smtpUser: 'jose.narva@purplebtl.com',
+          smtpPass: 'dilkijawrxjcuaba'
+        }
+      }).then(r => {
+        console.log('User updated in VPS DB:', r);
+      }).finally(() => prisma.\\$disconnect());
+    "
+  `, (err, stream) => {
+    if (err) throw err;
+    stream.on('close', () => conn.end())
+      .on('data', d => process.stdout.write(d))
+      .stderr.on('data', d => process.stderr.write(d));
+  });
+}).connect({
+  host: process.env.DEPLOY_HOST,
+  port: 22,
+  username: process.env.DEPLOY_USER,
+  password: process.env.DEPLOY_PASS
+});

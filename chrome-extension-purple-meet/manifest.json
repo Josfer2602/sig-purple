@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "SIG Purple - Google Meet Copilot",
+  "version": "1.0.0",
+  "description": "Copiloto en vivo para Google Meet: toma de notas, detección de vacíos y llenado reactivo del Smart Brief de Purple BTL.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://purple.devlian.de/*",
+    "http://localhost:5000/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SIG Purple - Google Meet Copilot"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
+

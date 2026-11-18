@@ -1,0 +1,430 @@
+﻿olevba 0.60.2 on Python 3.14.3 - http://decalage.info/python/oletools
+===============================================================================
+FILE: Plantilla Cotización.xlsm
+Type: OpenXML
+WARNING  For now, VBA stomping cannot be detected for files in memory
+-------------------------------------------------------------------------------
+VBA MACRO ThisWorkbook.cls 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/ThisWorkbook'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Private Sub Workbook_Open()
+
+Formatocotizaciones.Show
+
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Módulo6.bas 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Módulo6'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub EjecutaCot()
+
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+Application.EnableEvents = False
+ActiveSheet.DisplayPageBreaks = False
+
+ActiveSheet.Unprotect "12345678"
+
+Sheets("Datos").Visible = True
+Sheets("Cotización Cliente").Visible = True
+
+MsgBox "Validar ortografía", vbOKOnly + vbInformation, "Formato de Cotización"
+
+Cells.CheckSpelling SpellLang:=10250
+
+MsgBox "Validación de ortografía exitosa", vbOKOnly + vbInformation, "Formato de Cotización"
+
+
+Sheets("Cotización Cliente").Select
+
+ActiveSheet.Unprotect "12345678"
+
+Range("A17:K1500").Select
+Selection.EntireRow.delete
+
+Sheets("Cotizacion Interna").Select
+Fila_Final = Range("F" & Cells.Rows.Count).End(xlUp).Row
+Range("F10:I" & Fila_Final).Select
+ActiveSheet.PageSetup.PrintArea = "F10:I" & Fila_Final
+Selection.Copy
+Sheets("Cotización Cliente").Select
+Range("C16").Select
+ActiveSheet.Paste
+
+
+Sheets("Cotizacion Interna").Select
+Fila_Final = Range("O" & Cells.Rows.Count).End(xlUp).Row
+Range("O10:P" & Fila_Final).Select
+ActiveSheet.PageSetup.PrintArea = "O10:P" & Fila_Final
+Selection.Copy
+Sheets("Cotización Cliente").Select
+Range("G16").Select
+ActiveSheet.Paste
+
+Sheets("Cotizacion Interna").Select
+Fila_Final = Range("O" & Cells.Rows.Count).End(xlUp).Row
+Range("O10:P" & Fila_Final).Select
+ActiveSheet.PageSetup.PrintArea = "O10:P" & Fila_Final
+Selection.Copy
+Sheets("Cotización Cliente").Select
+Range("G16").Select
+Selection.PasteSpecial Paste:=xlPasteValuesAndNumberFormats, Operation:= _
+        xlNone, SkipBlanks:=False, Transpose:=False
+        
+Sheets("Cotizacion Interna").Select
+Range("E8").Select
+
+    ActiveSheet.Protect Password:="12345678", DrawingObjects:=True, Contents:=True, Scenarios:=True _
+        , AllowFormattingRows:=True
+
+Sheets("Datos").Select
+Range("B5:E10").Select
+Selection.Copy
+Sheets("Cotización Cliente").Select
+Range("G" & Cells.Rows.Count).End(xlUp).Select
+ActiveCell.Offset(6, -5).Activate
+Selection.PasteSpecial Paste:=xlPasteValuesAndNumberFormats, Operation:= _
+        xlNone, SkipBlanks:=False, Transpose:=False
+    Selection.PasteSpecial Paste:=xlPasteFormats, Operation:=xlNone, _
+        SkipBlanks:=False, Transpose:=False
+
+Cells.Select
+Range("B1").Activate
+
+Selection.Locked = True
+Selection.FormulaHidden = False
+
+Sheets("Datos").Visible = False
+
+    ActiveSheet.Protect Password:="12345678", DrawingObjects:=True, Contents:=True, Scenarios:=True _
+        , AllowFormattingRows:=True
+
+ThisWorkbook.Save
+
+Application.ScreenUpdating = True
+Application.Calculation = xlCalculationAutomatic
+Application.EnableEvents = True
+ActiveSheet.DisplayPageBreaks = True
+Application.CutCopyMode = False
+
+
+    
+End Sub
+
+Sub Filas()
+
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+Application.EnableEvents = False
+ActiveSheet.DisplayPageBreaks = False
+
+ActiveSheet.Unprotect "12345678"
+
+Selection.EntireRow.Select
+
+Sheets("Datos 2").Visible = True
+
+ActiveCell.Offset(1).EntireRow.Insert
+  Sheets("Datos 2").Select
+    Rows("12").Select
+    Selection.Copy
+Sheets("Cotizacion Interna").Select
+ActiveCell.Offset(1, 0).Activate
+ActiveSheet.Paste
+
+Sheets("Datos 2").Visible = False
+
+    ActiveSheet.Protect Password:="12345678", DrawingObjects:=True, Contents:=True, Scenarios:=True _
+        , AllowFormattingRows:=True
+
+Application.ScreenUpdating = True
+Application.Calculation = xlCalculationAutomatic
+Application.EnableEvents = True
+ActiveSheet.DisplayPageBreaks = True
+Application.CutCopyMode = False
+
+End Sub
+Sub ItemNuevo()
+
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+Application.EnableEvents = False
+ActiveSheet.DisplayPageBreaks = False
+
+ActiveSheet.Unprotect "12345678"
+
+Sheets("Datos 2").Visible = True
+
+Selection.EntireRow.Select
+
+ActiveCell.Offset(1).EntireRow.Insert
+  Sheets("Datos 2").Select
+    Rows("5").Select
+    Selection.Copy
+Sheets("Cotizacion Interna").Select
+ActiveCell.Offset(1, 0).Activate
+ActiveSheet.Paste
+ActiveCell.Offset(1).EntireRow.Insert
+  Sheets("Datos 2").Select
+    Rows("7").Select
+    Selection.Copy
+Sheets("Cotizacion Interna").Select
+ActiveCell.Offset(1, 0).Activate
+ActiveSheet.Paste
+
+Sheets("Datos 2").Visible = False
+
+    ActiveSheet.Protect Password:="12345678", DrawingObjects:=True, Contents:=True, Scenarios:=True _
+        , AllowFormattingRows:=True
+
+Application.ScreenUpdating = True
+Application.Calculation = xlCalculationAutomatic
+Application.EnableEvents = True
+ActiveSheet.DisplayPageBreaks = True
+Application.CutCopyMode = False
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Hoja3.cls 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Hoja3'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Hoja2.cls 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Hoja2'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Módulo7.bas 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Módulo7'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub ExportaraPDF()
+Attribute ExportaraPDF.VB_ProcData.VB_Invoke_Func = " \n14"
+
+Fila_Final = Range("B" & Cells.Rows.Count).End(xlUp).Row
+
+Range("B2:I" & Fila_Final).Select
+
+ActiveSheet.PageSetup.PrintArea = "B2:I" & Fila_Final
+
+nombre = Range("A1").Value
+
+ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, filename:=nombre & ".pdf", Quality:=xlQualityStandard, IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:=True
+
+MsgBox "Archivo Exportado a PDF con exito", vbExclamation
+
+Range("F8").Select
+
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Hoja1.cls 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Hoja1'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Módulo5.bas 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Módulo5'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub Macro2()
+Attribute Macro2.VB_ProcData.VB_Invoke_Func = " \n14"
+'
+' Macro2 Macro
+'
+
+'
+    Cells.Select
+    Range("B1").Activate
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Módulo1.bas 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Módulo1'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub Borrar()
+
+Application.ScreenUpdating = False
+Application.Calculation = xlCalculationManual
+Application.EnableEvents = False
+ActiveSheet.DisplayPageBreaks = False
+
+ActiveSheet.Unprotect "12345678"
+
+Selection.EntireRow.Select
+
+Selection.delete Shift:=xlUp
+
+    ActiveSheet.Protect Password:="12345678", DrawingObjects:=True, Contents:=True, Scenarios:=True _
+        , AllowFormattingRows:=True
+
+Application.ScreenUpdating = True
+Application.Calculation = xlCalculationAutomatic
+Application.EnableEvents = True
+ActiveSheet.DisplayPageBreaks = True
+Application.CutCopyMode = False
+
+
+End Sub
+
+-------------------------------------------------------------------------------
+VBA MACRO Hoja5.cls 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Hoja5'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA MACRO Módulo2.bas 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Módulo2'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub Retorno()
+
+Sheets("Cotización Cliente").Visible = False
+Sheets("Cotizacion Interna").Select
+
+
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Módulo3.bas 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Módulo3'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub Horizontal()
+Attribute Horizontal.VB_ProcData.VB_Invoke_Func = " \n14"
+ActiveSheet.PageSetup.Orientation = xlLandscape
+End Sub
+Sub Macro3()
+Attribute Macro3.VB_ProcData.VB_Invoke_Func = " \n14"
+'
+' Macro3 Macro
+'
+Sheets("Datos").Visible = True
+'
+    Sheets("Datos").Select
+    Selection.Copy
+    Sheets.Add After:=ActiveSheet
+    Range("B4").Select
+    Selection.PasteSpecial Paste:=xlPasteFormats, Operation:=xlNone, _
+        SkipBlanks:=False, Transpose:=False
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Formatocotizaciones.frm 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Private Sub COMENZAR_Click()
+
+Dim cliente As String
+Dim marca As String
+Dim requerimiento As String
+
+cliente = TextBox1
+marca = TextBox2
+requerimiento = TextBox3
+
+If (cliente <> "" And marca <> "" And requerimiento <> "") Then
+
+Sheets("Cotizacion Interna").Select
+
+ActiveSheet.Unprotect "12345678"
+
+ActiveSheet.Range("G2").Value = TextBox1.Text
+ActiveSheet.Range("G3").Value = TextBox2.Text
+ActiveSheet.Range("G4").Value = TextBox3.Text
+
+
+Else
+    MsgBox "Los campos requeridos no estàn completos!", vbExclamation, "Formato de CotizaciÑn"
+
+End If
+
+Formatocotizaciones.Hide
+
+Dim MiArchivo As String
+MiArchivo = Range("G1")
+Application.DisplayAlerts = False
+ActiveWorkbook.SaveAs filename:= _
+"C:\Users\Asus\Desktop" & "\" & MiArchivo, _
+FileFormat:=xlOpenXMLWorkbookMacroEnabled, CreateBackup:=False 'Aqui se modifica el tipo de extension que deseas
+Application.DisplayAlerts = True
+
+ActiveSheet.Unprotect "12345678"
+
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Módulo4.bas 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Módulo4'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Sub Macro1()
+Attribute Macro1.VB_ProcData.VB_Invoke_Func = " \n14"
+'
+' Macro1 Macro
+'
+
+'
+    ActiveSheet.Protect Password:="12345678", DrawingObjects:=True, Contents:=True, Scenarios:=True _
+        , AllowFormattingRows:=True
+End Sub
+-------------------------------------------------------------------------------
+VBA MACRO Hoja4.cls 
+in file: xl/vbaProject.bin - OLE stream: 'VBA/Hoja4'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+(empty macro)
+-------------------------------------------------------------------------------
+VBA FORM STRING IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones/o'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+H�,vwz
+-------------------------------------------------------------------------------
+VBA FORM STRING IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones/o'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+�CLIENTE:D
+-------------------------------------------------------------------------------
+VBA FORM STRING IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones/o'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+�MARCA:
+-------------------------------------------------------------------------------
+VBA FORM STRING IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones/o'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+TahomaE:
+-------------------------------------------------------------------------------
+VBA FORM STRING IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones/o'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+�REQUERIMIENTO:a
+-------------------------------------------------------------------------------
+VBA FORM STRING IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones/o'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+�COMENZAR]
+-------------------------------------------------------------------------------
+VBA FORM Variable "b'TextBox1'" IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+b''
+-------------------------------------------------------------------------------
+VBA FORM Variable "b'Label1'" IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+None
+-------------------------------------------------------------------------------
+VBA FORM Variable "b'TextBox2'" IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+b''
+-------------------------------------------------------------------------------
+VBA FORM Variable "b'Label2'" IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+None
+-------------------------------------------------------------------------------
+VBA FORM Variable "b'TextBox3'" IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+b''
+-------------------------------------------------------------------------------
+VBA FORM Variable "b'Label3'" IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+None
+-------------------------------------------------------------------------------
+VBA FORM Variable "b'COMENZAR'" IN 'xl/vbaProject.bin' - OLE stream: 'Formatocotizaciones'
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+None
++----------+--------------------+---------------------------------------------+
+|Type      |Keyword             |Description                                  |
++----------+--------------------+---------------------------------------------+
+|AutoExec  |Workbook_Open       |Runs when the Excel Workbook is opened       |
+|AutoExec  |COMENZAR_Click      |Runs when the file is opened and ActiveX     |
+|          |                    |objects trigger events                       |
+|Suspicious|ActiveWorkbook.SaveA|May save the current workbook                |
+|          |s                   |                                             |
+|Suspicious|Hex Strings         |Hex-encoded strings were detected, may be    |
+|          |                    |used to obfuscate strings (option --decode to|
+|          |                    |see all)                                     |
++----------+--------------------+---------------------------------------------+
+

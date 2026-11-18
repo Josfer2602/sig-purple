@@ -1,0 +1,2355 @@
+[
+  {
+    "row": 15,
+    "cliente": "MMG",
+    "actividad": "Activación Halloween",
+    "excel_subtotal": 0.0,
+    "fechaProp": "2026-10-05",
+    "estado": "1.EN ESPERA CP",
+    "candidates": [
+      {
+        "id": "PRJ-2026-021",
+        "nombre": "Activación Halloween",
+        "cliente": "OPELUCE",
+        "subtotal": 31580.64,
+        "fechaRegistro": "5/10/2026",
+        "estado": "Registrado"
+      },
+      {
+        "id": "PRJ-2026-030",
+        "nombre": "Activación Halloween",
+        "cliente": "MMG",
+        "subtotal": 11603.2,
+        "fechaRegistro": "12/10/2026",
+        "estado": "Registrado"
+      }
+    ]
+  },
+  {
+    "row": 17,
+    "cliente": "Clínica de Ojos Opeluce",
+    "actividad": "Activación Halloween",
+    "excel_subtotal": 0.0,
+    "fechaProp": "2026-09-29",
+    "estado": "1.EN ESPERA CP",
+    "candidates": [
+      {
+        "id": "PRJ-2026-021",
+        "nombre": "Activación Halloween",
+        "cliente": "OPELUCE",
+        "subtotal": 31580.64,
+        "fechaRegistro": "5/10/2026",
+        "estado": "Registrado"
+      },
+      {
+        "id": "PRJ-2026-030",
+        "nombre": "Activación Halloween",
+        "cliente": "MMG",
+        "subtotal": 11603.2,
+        "fechaRegistro": "12/10/2026",
+        "estado": "Registrado"
+      }
+    ]
+  },
+  {
+    "row": 20,
+    "cliente": "Atlantic City",
+    "actividad": "Papa Noel y Grinch",
+    "excel_subtotal": 0.0,
+    "fechaProp": "2026-10-05",
+    "estado": "1.EN ESPERA CP",
+    "candidates": [
+      {
+        "id": "PRJ-2026-036",
+        "nombre": "Papa Noel y Grinch",
+        "cliente": "Atlantic City",
+        "subtotal": 5611.2,
+        "fechaRegistro": "2026-10-05",
+        "estado": "Registrado"
+      }
+    ]
+  },
+  {
+    "row": 21,
+    "cliente": "Cementos Pacasmayo",
+    "actividad": "Juntas Vecinales Rentapro",
+    "excel_subtotal": 0.0,
+    "fechaProp": "2026-10-05",
+    "estado": "1.EN ESPERA CP",
+    "candidates": [
+      {
+        "id": "PRJ-2026-037",
+        "nombre": "Juntas Vecinales Rentapro",
+        "cliente": "Cementos Pacasmayo",
+        "subtotal": 2301.6,
+        "fechaRegistro": "2026-10-05",
+        "estado": "Registrado"
+      }
+    ]
+  },
+  {
+    "row": 23,
+    "cliente": "Grupo Patio",
+    "actividad": "Fotos y Videos en Ica",
+    "excel_subtotal": 0.0,
+    "fechaProp": "2026-10-01",
+    "estado": "1.EN ESPERA CP",
+    "candidates": [
+      {
+        "id": "PRJ-2026-039",
+        "nombre": "Fotos y Videos en Ica",
+        "cliente": "Grupo Patio",
+        "subtotal": 2100.0,
+        "fechaRegistro": "2026-10-01",
+        "estado": "Registrado"
+      }
+    ]
+  },
+  {
+    "row": 27,
+    "cliente": "Izipay",
+    "actividad": "Brandeo de Mercado Mayorista",
+    "excel_subtotal": 21011.2,
+    "fechaProp": "2026-07-06",
+    "estado": "1.EN ESPERA CP",
+    "candidates": [
+      {
+        "id": "PRJ-2026-004",
+        "nombre": "Brandeo de Mercado Mayorista",
+        "cliente": "IZIPAY",
+        "subtotal": 20985.44,
+        "fechaRegistro": "9/9/2026",
+        "estado": "Registrado"
+      }
+    ]
+  },
+  {
+    "row": 48,
+    "cliente": "Conelsur",
+    "actividad": "Evento de Aniversario",
+    "excel_subtotal": 99228.64,
+    "fechaProp": "2026-07-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-062",
+        "nombre": "Evento de Aniversario",
+        "cliente": "Conelsur",
+        "subtotal": 130814.88,
+        "fechaRegistro": "2026-07-07",
+        "estado": "Aprobado"
+      },
+      {
+        "id": "PRJ-2024-091",
+        "nombre": "Evento de Aniversario",
+        "cliente": "GRV Corporativa",
+        "subtotal": 39365.76,
+        "fechaRegistro": "2024-09-11",
+        "estado": "Rechazado"
+      }
+    ]
+  },
+  {
+    "row": 49,
+    "cliente": "Artilegio",
+    "actividad": "Implementación Banco Ripley en Latin Pop Festival",
+    "excel_subtotal": 64290.8,
+    "fechaProp": "2026-03-03",
+    "estado": "4.APROBADO",
+    "candidates": []
+  },
+  {
+    "row": 57,
+    "cliente": "CNCH",
+    "actividad": "Diseño de Banners Chin Chin Pintalenguas Clientes Mayorista",
+    "excel_subtotal": 2120.0,
+    "fechaProp": "2026-09-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-066",
+        "nombre": "Diseño de Banners Chin Chin Pintalenguas Clientes Mayorista",
+        "cliente": "CNCH",
+        "subtotal": 70500.64,
+        "fechaRegistro": "2026-09-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 61,
+    "cliente": "Rintisa",
+    "actividad": "Activaciones Ricocan y Ricocat en Mercados",
+    "excel_subtotal": 141385.27,
+    "fechaProp": "2024-03-14",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-001",
+        "nombre": "Activaciones Ricocan y Ricocat en Mercados",
+        "cliente": "Rintisa",
+        "subtotal": 61065.76,
+        "fechaRegistro": "2024-03-14",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 62,
+    "cliente": "Cementos Pacasmayo",
+    "actividad": "Desayunos Construye Experto en Provincias Norte",
+    "excel_subtotal": 129406.37,
+    "fechaProp": "2025-05-05",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-005",
+        "nombre": "Desayunos Construye Experto en Provincias Norte",
+        "cliente": "Cementos Pacasmayo",
+        "subtotal": 226982.56,
+        "fechaRegistro": "2025-05-05",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 63,
+    "cliente": "Campari",
+    "actividad": "Muebles de Verano 2020 Aperol",
+    "excel_subtotal": 107016.0,
+    "fechaProp": "2019-11-25",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2019-002",
+        "nombre": "Muebles de Verano 2020 Aperol",
+        "cliente": "Campari",
+        "subtotal": 5465.6,
+        "fechaRegistro": "2019-11-25",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 65,
+    "cliente": "Cementos Pacasmayo",
+    "actividad": "Recorrido en VAN MO Fortimax",
+    "excel_subtotal": 86089.92,
+    "fechaProp": "2025-08-25",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-006",
+        "nombre": "Recorrido en VAN MO Fortimax",
+        "cliente": "Cementos Pacasmayo",
+        "subtotal": 75731.04,
+        "fechaRegistro": "2025-08-25",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 70,
+    "cliente": "Novum Solar",
+    "actividad": "Evento de Fin de Año 2023 con clientes",
+    "excel_subtotal": 61753.44,
+    "fechaProp": "2023-10-17",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-002",
+        "nombre": "Evento de Fin de Año 2023 con clientes",
+        "cliente": "Novum Solar",
+        "subtotal": 62772.64,
+        "fechaRegistro": "2023-10-17",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 81,
+    "cliente": "CNCH",
+    "actividad": "Activación Lanzamiento Chin Chin 30gr Cajita",
+    "excel_subtotal": 53844.0,
+    "fechaProp": "2025-05-05",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-016",
+        "nombre": "Activación Lanzamiento Chin Chin 30gr Cajita",
+        "cliente": "CNCH",
+        "subtotal": 56455.84,
+        "fechaRegistro": "2025-05-05",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 84,
+    "cliente": "Agrovet Market",
+    "actividad": "Carritos, logística y personal para LAVC 2026",
+    "excel_subtotal": 47690.33,
+    "fechaProp": "2026-04-30",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-069",
+        "nombre": "Carritos, logística y personal para LAVC 2026",
+        "cliente": "Agrovet Market",
+        "subtotal": 49002.24,
+        "fechaRegistro": "2026-04-30",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 88,
+    "cliente": "Agrovet Market",
+    "actividad": "Activación Feria LAVC 2025",
+    "excel_subtotal": 45345.44,
+    "fechaProp": "2025-05-05",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-018",
+        "nombre": "Activación Feria LAVC 2025",
+        "cliente": "Agrovet Market",
+        "subtotal": 133730.24,
+        "fechaRegistro": "2025-05-05",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 103,
+    "cliente": "Campari",
+    "actividad": "Promoción Riccadonna Supermercados - Cafeteras y Hornos Pizza",
+    "excel_subtotal": 41339.2,
+    "fechaProp": "2020-06-03",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2020-002",
+        "nombre": "Promoción Riccadonna Supermercados - Cafeteras y Hornos Pizza",
+        "cliente": "Campari",
+        "subtotal": 28502.88,
+        "fechaRegistro": "2020-06-03",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 104,
+    "cliente": "Softys",
+    "actividad": "Exhibidores multimarca - Farma Softys (250 unidades)",
+    "excel_subtotal": 40481.28,
+    "fechaProp": "2020-05-12",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2020-003",
+        "nombre": "Exhibidores multimarca - Farma Softys (250 unidades)",
+        "cliente": "Softys",
+        "subtotal": 4152.96,
+        "fechaRegistro": "2020-05-12",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 105,
+    "cliente": "Rintisa",
+    "actividad": "Evento LAVC 2022 - CANBO",
+    "excel_subtotal": 40136.32,
+    "fechaProp": "2022-04-04",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-002",
+        "nombre": "Evento LAVC 2022 - CANBO",
+        "cliente": "Rintisa",
+        "subtotal": 527354.24,
+        "fechaRegistro": "2022-04-04",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 113,
+    "cliente": "ISDIN",
+    "actividad": "Evento Cala 2023",
+    "excel_subtotal": 37038.4,
+    "fechaProp": "2022-12-22",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-004",
+        "nombre": "Evento Cala 2023",
+        "cliente": "ISDIN",
+        "subtotal": 63327.04,
+        "fechaRegistro": "2022-12-22",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 117,
+    "cliente": "Tribeca",
+    "actividad": "Activaciones Asia Agora Shop",
+    "excel_subtotal": 35537.6,
+    "fechaProp": "2023-01-04",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-006",
+        "nombre": "Activaciones Asia Agora Shop",
+        "cliente": "Tribeca",
+        "subtotal": 31454.08,
+        "fechaRegistro": "2023-01-04",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 120,
+    "cliente": "Novum Solar",
+    "actividad": "Evento de Fin de Año 2022",
+    "excel_subtotal": 34949.6,
+    "fechaProp": "2022-11-10",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-005",
+        "nombre": "Evento de Fin de Año 2022",
+        "cliente": "Novum Solar",
+        "subtotal": 35910.56,
+        "fechaRegistro": "2022-11-10",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 121,
+    "cliente": "ISDIN",
+    "actividad": "Mueble de Experiencia Boulevard de Asia",
+    "excel_subtotal": 33992.0,
+    "fechaProp": "2022-09-16",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-006",
+        "nombre": "Mueble de Experiencia Boulevard de Asia",
+        "cliente": "ISDIN",
+        "subtotal": 68872.16,
+        "fechaRegistro": "2022-09-16",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 122,
+    "cliente": "Sanofi",
+    "actividad": "Kit Simple Buscamint para distribuidoras",
+    "excel_subtotal": 33119.52,
+    "fechaProp": "2022-04-26",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-007",
+        "nombre": "Kit Simple Buscamint para distribuidoras",
+        "cliente": "Sanofi",
+        "subtotal": 15706.88,
+        "fechaRegistro": "2022-04-26",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 124,
+    "cliente": "Ventura Soluciones",
+    "actividad": "Evento Lanzamiento Línea Cloud",
+    "excel_subtotal": 32345.6,
+    "fechaProp": "2023-08-15",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-007",
+        "nombre": "Evento Lanzamiento Línea Cloud",
+        "cliente": "Ventura Soluciones",
+        "subtotal": 29724.8,
+        "fechaRegistro": "2023-08-15",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 126,
+    "cliente": "Pluspetrol",
+    "actividad": "Stand Publicitarios para Feria Laboral UNI",
+    "excel_subtotal": 31612.0,
+    "fechaProp": "2024-07-09",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-016",
+        "nombre": "Stand Publicitarios para Feria Laboral UNI",
+        "cliente": "Pluspetrol",
+        "subtotal": 31048.64,
+        "fechaRegistro": "2024-07-09",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 128,
+    "cliente": "Rintisa",
+    "actividad": "Latin Pet 2023",
+    "excel_subtotal": 29960.0,
+    "fechaProp": "2023-06-05",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-008",
+        "nombre": "Latin Pet 2023",
+        "cliente": "Rintisa",
+        "subtotal": 34679.68,
+        "fechaRegistro": "2023-06-05",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 129,
+    "cliente": "Novum Solar",
+    "actividad": "Evento de Fin de Año 2023 con clientes (Adicionales)",
+    "excel_subtotal": 29481.31,
+    "fechaProp": "2023-12-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-009",
+        "nombre": "Evento de Fin de Año 2023 con clientes (Adicionales)",
+        "cliente": "Novum Solar",
+        "subtotal": 29238.72,
+        "fechaRegistro": "2023-12-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 132,
+    "cliente": "Lab Zsports",
+    "actividad": "Activación 1XBET para Deportivo Municipal",
+    "excel_subtotal": 28341.6,
+    "fechaProp": "2023-04-20",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-010",
+        "nombre": "Activación 1XBET para Deportivo Municipal",
+        "cliente": "Lab Zsports",
+        "subtotal": 72688.0,
+        "fechaRegistro": "2023-04-20",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 133,
+    "cliente": "Pluspetrol",
+    "actividad": "Stand Publicitario Feria Ulima 2024",
+    "excel_subtotal": 27680.8,
+    "fechaProp": "2024-09-16",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-017",
+        "nombre": "Stand Publicitario Feria Ulima 2024",
+        "cliente": "Pluspetrol",
+        "subtotal": 57303.68,
+        "fechaRegistro": "2024-09-16",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 136,
+    "cliente": "Campari",
+    "actividad": "Material POP / Merchandising / Mistery Shopper  - Aperol Spritz",
+    "excel_subtotal": 25882.36,
+    "fechaProp": "2018-11-26",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2018-003",
+        "nombre": "Material POP / Merchandising / Mistery Shopper  - Aperol Spritz",
+        "cliente": "Campari",
+        "subtotal": 23471.84,
+        "fechaRegistro": "2018-11-26",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 138,
+    "cliente": "CNCH",
+    "actividad": "Lanzamiento Interno Cocoa Winter's con Kits (Materiales)",
+    "excel_subtotal": 25613.0,
+    "fechaProp": "2023-02-22",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-011",
+        "nombre": "Lanzamiento Interno Cocoa Winter's con Kits (Materiales)",
+        "cliente": "CNCH",
+        "subtotal": 4980.64,
+        "fechaRegistro": "2023-02-22",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 139,
+    "cliente": "Kallpa",
+    "actividad": "Mantenimiento de Bancas Solares 2024 (Mant 4 - AQP Noviembre)",
+    "excel_subtotal": 25104.8,
+    "fechaProp": "2023-11-16",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-012",
+        "nombre": "Mantenimiento de Bancas Solares 2024 (Mant 4 - AQP Noviembre)",
+        "cliente": "Kallpa",
+        "subtotal": 111726.72,
+        "fechaRegistro": "2023-11-16",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 141,
+    "cliente": "Sanofi",
+    "actividad": "Kit de Codificación Lanzamiento Buscamint",
+    "excel_subtotal": 24584.0,
+    "fechaProp": "2022-03-14",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-009",
+        "nombre": "Kit de Codificación Lanzamiento Buscamint",
+        "cliente": "Sanofi",
+        "subtotal": 25066.72,
+        "fechaRegistro": "2022-03-14",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 151,
+    "cliente": "Softys",
+    "actividad": "Foto del Éxito + Shopper Experience - Mercado Ciudad de Dios",
+    "excel_subtotal": 20720.0,
+    "fechaProp": "2019-03-08",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2019-009",
+        "nombre": "Foto del Éxito + Shopper Experience - Mercado Ciudad de Dios",
+        "cliente": "Softys",
+        "subtotal": 20883.52,
+        "fechaRegistro": "2019-03-08",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 152,
+    "cliente": "Cirsa",
+    "actividad": "Grabación de Sorteos Veranísimo",
+    "excel_subtotal": 20664.0,
+    "fechaProp": "2024-12-11",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-020",
+        "nombre": "Grabación de Sorteos Veranísimo",
+        "cliente": "Cirsa",
+        "subtotal": 40554.08,
+        "fechaRegistro": "2024-12-11",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 158,
+    "cliente": "Colombina",
+    "actividad": "Activación Itinerante Bon Bon Bum Luloflow",
+    "excel_subtotal": 19521.6,
+    "fechaProp": "2024-03-04",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-022",
+        "nombre": "Activación Itinerante Bon Bon Bum Luloflow",
+        "cliente": "Colombina",
+        "subtotal": 20397.44,
+        "fechaRegistro": "2024-03-04",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 160,
+    "cliente": "ISDIN",
+    "actividad": "Activación Boulevard de Asia",
+    "excel_subtotal": 19381.6,
+    "fechaProp": "2022-12-06",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-011",
+        "nombre": "Activación Boulevard de Asia",
+        "cliente": "ISDIN",
+        "subtotal": 19065.76,
+        "fechaRegistro": "2022-12-06",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 161,
+    "cliente": "CNCH",
+    "actividad": "Promoción WhatsApp Winters y Chocolisto",
+    "excel_subtotal": 19062.4,
+    "fechaProp": "2022-05-26",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-012",
+        "nombre": "Promoción WhatsApp Winters y Chocolisto",
+        "cliente": "CNCH",
+        "subtotal": 19023.2,
+        "fechaRegistro": "2022-05-26",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 165,
+    "cliente": "Grupo Alcarraz",
+    "actividad": "Stand y Activaciones en Vega Evento",
+    "excel_subtotal": 18289.6,
+    "fechaProp": "2026-07-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-072",
+        "nombre": "Stand y Activaciones en Vega Evento",
+        "cliente": "Grupo Alcarraz",
+        "subtotal": 18584.16,
+        "fechaRegistro": "2026-07-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 168,
+    "cliente": "ISDIN",
+    "actividad": "Cambios Módulo ISDIN Asia",
+    "excel_subtotal": 17656.8,
+    "fechaProp": "2023-04-12",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-017",
+        "nombre": "Cambios Módulo ISDIN Asia",
+        "cliente": "ISDIN",
+        "subtotal": 16890.72,
+        "fechaRegistro": "2023-04-12",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 169,
+    "cliente": "AAP",
+    "actividad": "Stand Expomoto 2026",
+    "excel_subtotal": 17600.8,
+    "fechaProp": "2026-04-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-073",
+        "nombre": "Stand Expomoto 2026",
+        "cliente": "AAP",
+        "subtotal": 17130.4,
+        "fechaRegistro": "2026-04-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 172,
+    "cliente": "ISDIN",
+    "actividad": "Stand Publicitario Peruderm",
+    "excel_subtotal": 16665.6,
+    "fechaProp": "2022-10-04",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-013",
+        "nombre": "Stand Publicitario Peruderm",
+        "cliente": "ISDIN",
+        "subtotal": 24566.08,
+        "fechaRegistro": "2022-10-04",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 175,
+    "cliente": "Diphasac",
+    "actividad": "Activación BTL Lanzamiento Nayflex",
+    "excel_subtotal": 15898.4,
+    "fechaProp": "2024-02-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-023",
+        "nombre": "Activación BTL Lanzamiento Nayflex",
+        "cliente": "Diphasac",
+        "subtotal": 16111.2,
+        "fechaRegistro": "2024-02-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 177,
+    "cliente": "ISDIN",
+    "actividad": "Activaciones en Retail Lanzamiento Fotoprotector Fusion Water",
+    "excel_subtotal": 15803.2,
+    "fechaProp": "2022-06-28",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-014",
+        "nombre": "Activaciones en Retail Lanzamiento Fotoprotector Fusion Water",
+        "cliente": "ISDIN",
+        "subtotal": 31445.12,
+        "fechaRegistro": "2022-06-28",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 178,
+    "cliente": "Sanofi",
+    "actividad": "Endomarketing Allegra",
+    "excel_subtotal": 15373.12,
+    "fechaProp": "2021-09-21",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2021-011",
+        "nombre": "Endomarketing Allegra",
+        "cliente": "Sanofi",
+        "subtotal": 5901.28,
+        "fechaRegistro": "2021-09-21",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 180,
+    "cliente": "Interbank",
+    "actividad": "Cambios en Diseño e Implementación Elementos Hiraoka Feb25",
+    "excel_subtotal": 15120.0,
+    "fechaProp": "2024-11-21",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-024",
+        "nombre": "Cambios en Diseño e Implementación Elementos Hiraoka Feb25",
+        "cliente": "Interbank",
+        "subtotal": 14448.0,
+        "fechaRegistro": "2024-11-21",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 183,
+    "cliente": "Grupo Patio",
+    "actividad": "Eventos ENERO en Boulevard Puntamar",
+    "excel_subtotal": 14468.07,
+    "fechaProp": "2025-12-11",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-027",
+        "nombre": "Eventos ENERO en Boulevard Puntamar",
+        "cliente": "Grupo Patio",
+        "subtotal": 29545.6,
+        "fechaRegistro": "2025-12-11",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 196,
+    "cliente": "CNCH",
+    "actividad": "Promo Winter's y Chocolisto Jul2023",
+    "excel_subtotal": 12432.0,
+    "fechaProp": "2023-06-13",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-021",
+        "nombre": "Promo Winter's y Chocolisto Jul2023",
+        "cliente": "CNCH",
+        "subtotal": 11841.76,
+        "fechaRegistro": "2023-06-13",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 205,
+    "cliente": "Pluspetrol",
+    "actividad": "Stand Feria Laboral UNI 2025",
+    "excel_subtotal": 11312.56,
+    "fechaProp": "2025-08-04",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-029",
+        "nombre": "Stand Feria Laboral UNI 2025",
+        "cliente": "Pluspetrol",
+        "subtotal": 2856000.0,
+        "fechaRegistro": "2025-08-04",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 208,
+    "cliente": "Alicorp",
+    "actividad": "Cartucheras de Sachets Alpesa",
+    "excel_subtotal": 10344.8,
+    "fechaProp": "2022-10-24",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-016",
+        "nombre": "Cartucheras de Sachets Alpesa",
+        "cliente": "Alicorp",
+        "subtotal": 20781.6,
+        "fechaRegistro": "2022-10-24",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 212,
+    "cliente": "Sanofi",
+    "actividad": "Endomarketing Allegra - Febrero 2022",
+    "excel_subtotal": 9590.78,
+    "fechaProp": "2022-02-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-017",
+        "nombre": "Endomarketing Allegra - Febrero 2022",
+        "cliente": "Sanofi",
+        "subtotal": 9979.2,
+        "fechaRegistro": "2022-02-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 216,
+    "cliente": "Alicorp",
+    "actividad": "Elaboración adicional de cartucheras Alacena y Alpesa",
+    "excel_subtotal": 9077.6,
+    "fechaProp": "2023-04-27",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-025",
+        "nombre": "Elaboración adicional de cartucheras Alacena y Alpesa",
+        "cliente": "Alicorp",
+        "subtotal": 5549.6,
+        "fechaRegistro": "2023-04-27",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 218,
+    "cliente": "ISDIN",
+    "actividad": "Elementos Tenis - Banquillo Sofá Tenis",
+    "excel_subtotal": 8960.0,
+    "fechaProp": "2023-07-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-026",
+        "nombre": "Elementos Tenis - Banquillo Sofá Tenis",
+        "cliente": "ISDIN",
+        "subtotal": 9094.4,
+        "fechaRegistro": "2023-07-18",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 222,
+    "cliente": "Interbank",
+    "actividad": "Proyecto de Visibilidad Hiraoka (Etapas Diagnóstico y Propuesta de Lineamiento)",
+    "excel_subtotal": 8800.0,
+    "fechaProp": "2023-12-20",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-028",
+        "nombre": "Proyecto de Visibilidad Hiraoka (Etapas Diagnóstico y Propuesta de Lineamiento)",
+        "cliente": "Interbank",
+        "subtotal": 8812.16,
+        "fechaRegistro": "2023-12-20",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 223,
+    "cliente": "Inmobiliaria Clasem EOM",
+    "actividad": "Evento para Proyecto Piura",
+    "excel_subtotal": 8736.56,
+    "fechaProp": "2026-04-24",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-076",
+        "nombre": "Evento para Proyecto Piura",
+        "cliente": "Inmobiliaria Clasem EOM",
+        "subtotal": 8736.0,
+        "fechaRegistro": "2026-04-24",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 227,
+    "cliente": "Copeinca",
+    "actividad": "Merch Disruptivo para Semana de la Innovación",
+    "excel_subtotal": 8047.2,
+    "fechaProp": "2024-09-09",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-028",
+        "nombre": "Merch Disruptivo para Semana de la Innovación",
+        "cliente": "Copeinca",
+        "subtotal": 7697.76,
+        "fechaRegistro": "2024-09-09",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 233,
+    "cliente": "Grupo Patio",
+    "actividad": "Activaciones Mayo 2026",
+    "excel_subtotal": 7728.0,
+    "fechaProp": "2026-03-19",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-077",
+        "nombre": "Activaciones Mayo 2026",
+        "cliente": "Grupo Patio",
+        "subtotal": 8102.08,
+        "fechaRegistro": "2026-03-19",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 234,
+    "cliente": "UNESCO",
+    "actividad": "Bolsas Publicitarias y Tazas Personalizadas",
+    "excel_subtotal": 7711.86,
+    "fechaProp": "2022-11-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-020",
+        "nombre": "Bolsas Publicitarias y Tazas Personalizadas",
+        "cliente": "UNESCO",
+        "subtotal": 8759.52,
+        "fechaRegistro": "2022-11-18",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 235,
+    "cliente": "Colombina",
+    "actividad": "Evento Colombina Fest",
+    "excel_subtotal": 7683.2,
+    "fechaProp": "2025-07-09",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-036",
+        "nombre": "Evento Colombina Fest",
+        "cliente": "Colombina",
+        "subtotal": 7844.48,
+        "fechaRegistro": "2025-07-09",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 239,
+    "cliente": "Juguete Pendiente",
+    "actividad": "Elementos para Evento Aniversario 2023",
+    "excel_subtotal": 7459.2,
+    "fechaProp": "2023-09-11",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-031",
+        "nombre": "Elementos para Evento Aniversario 2023",
+        "cliente": "Juguete Pendiente",
+        "subtotal": 6861.12,
+        "fechaRegistro": "2023-09-11",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 240,
+    "cliente": "Alicorp",
+    "actividad": "Boxes de Masterbread para Influencers",
+    "excel_subtotal": 7309.12,
+    "fechaProp": "2022-05-03",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-021",
+        "nombre": "Boxes de Masterbread para Influencers",
+        "cliente": "Alicorp",
+        "subtotal": 6412.0,
+        "fechaRegistro": "2022-05-03",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 242,
+    "cliente": "Agrovet Market",
+    "actividad": "Activación Special Christmas Atrevia",
+    "excel_subtotal": 6941.76,
+    "fechaProp": "2025-11-24",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-038",
+        "nombre": "Activación Special Christmas Atrevia",
+        "cliente": "Agrovet Market",
+        "subtotal": 7053.76,
+        "fechaRegistro": "2025-11-24",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 244,
+    "cliente": "Alicorp",
+    "actividad": "Producción de Empaques Ruta de Limpieza",
+    "excel_subtotal": 6899.2,
+    "fechaProp": "2023-07-26",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-032",
+        "nombre": "Producción de Empaques Ruta de Limpieza",
+        "cliente": "Alicorp",
+        "subtotal": 7131.04,
+        "fechaRegistro": "2023-07-26",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 252,
+    "cliente": "Alicorp",
+    "actividad": "Cambios y Nuevos Empaques Limpieza B2B",
+    "excel_subtotal": 6462.4,
+    "fechaProp": "2024-06-27",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-029",
+        "nombre": "Cambios y Nuevos Empaques Limpieza B2B",
+        "cliente": "Alicorp",
+        "subtotal": 6238.4,
+        "fechaRegistro": "2024-06-27",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 255,
+    "cliente": "ISDIN",
+    "actividad": "Evento Hyatt y Rosa Náutica (Sep2023)",
+    "excel_subtotal": 6406.4,
+    "fechaProp": "2023-09-15",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-033",
+        "nombre": "Evento Hyatt y Rosa Náutica (Sep2023)",
+        "cliente": "ISDIN",
+        "subtotal": 5925.92,
+        "fechaRegistro": "2023-09-15",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 262,
+    "cliente": "ISDIN",
+    "actividad": "Pantalla para Evento Feb2025",
+    "excel_subtotal": 6115.2,
+    "fechaProp": "2025-02-11",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-045",
+        "nombre": "Pantalla para Evento Feb2025",
+        "cliente": "ISDIN",
+        "subtotal": 18866.4,
+        "fechaRegistro": "2025-02-11",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 263,
+    "cliente": "Agrovet Market",
+    "actividad": "Activación en Evento de Lanzamiento Fórmula Natural",
+    "excel_subtotal": 6115.2,
+    "fechaProp": "2024-03-15",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-030",
+        "nombre": "Activación en Evento de Lanzamiento Fórmula Natural",
+        "cliente": "Agrovet Market",
+        "subtotal": 20445.6,
+        "fechaRegistro": "2024-03-15",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 265,
+    "cliente": "Diphasac",
+    "actividad": "Diseño Branding 2 Lanzamientos",
+    "excel_subtotal": 6000.0,
+    "fechaProp": "2022-10-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-025",
+        "nombre": "Diseño Branding 2 Lanzamientos",
+        "cliente": "Diphasac",
+        "subtotal": 5868.8,
+        "fechaRegistro": "2022-10-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 273,
+    "cliente": "CNCH",
+    "actividad": "Activación Lanzamiento Chin Chin 30gr Cajita (adicionales bolsas y fotos)",
+    "excel_subtotal": 5603.92,
+    "fechaProp": "2025-07-01",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-046",
+        "nombre": "Activación Lanzamiento Chin Chin 30gr Cajita (adicionales bolsas y fotos)",
+        "cliente": "CNCH",
+        "subtotal": 5532.8,
+        "fechaRegistro": "2025-07-01",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 275,
+    "cliente": "Cirsa",
+    "actividad": "Juego Encaja la Ficha",
+    "excel_subtotal": 5488.0,
+    "fechaProp": "2024-12-10",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-111",
+        "nombre": "Juego Encaja la Ficha",
+        "cliente": "Lab Nutrition",
+        "subtotal": 1016.96,
+        "fechaRegistro": "2026-06-18",
+        "estado": "Aprobado"
+      },
+      {
+        "id": "PRJ-2024-033",
+        "nombre": "Juego Encaja la Ficha",
+        "cliente": "Cirsa",
+        "subtotal": 1220.8,
+        "fechaRegistro": "2024-12-10",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 283,
+    "cliente": "Juguete Pendiente",
+    "actividad": "Campaña de Heladas Mayo 2022",
+    "excel_subtotal": 5141.92,
+    "fechaProp": "2022-03-09",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-029",
+        "nombre": "Campaña de Heladas Mayo 2022",
+        "cliente": "Juguete Pendiente",
+        "subtotal": 433.44,
+        "fechaRegistro": "2022-03-09",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 287,
+    "cliente": "Grupo Patio",
+    "actividad": "Eventos ABRIL en Boulevard Puntamar",
+    "excel_subtotal": 5017.6,
+    "fechaProp": "2025-12-11",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-047",
+        "nombre": "Eventos ABRIL en Boulevard Puntamar",
+        "cliente": "Grupo Patio",
+        "subtotal": 9983.68,
+        "fechaRegistro": "2025-12-11",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 288,
+    "cliente": "UNESCO",
+    "actividad": "Bolsas Reutilizables con Fuelle + Lapicero Ecológico",
+    "excel_subtotal": 5002.03,
+    "fechaProp": "2024-03-13",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-035",
+        "nombre": "Bolsas Reutilizables con Fuelle + Lapicero Ecológico",
+        "cliente": "UNESCO",
+        "subtotal": 5081.44,
+        "fechaRegistro": "2024-03-13",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 292,
+    "cliente": "Grupo Patio",
+    "actividad": "Activación #1 para Plaza del Sol (Ica)",
+    "excel_subtotal": 4845.0,
+    "fechaProp": "2026-09-02",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-081",
+        "nombre": "Activación #1 para Plaza del Sol (Ica)",
+        "cliente": "Grupo Patio",
+        "subtotal": 5135.2,
+        "fechaRegistro": "2026-09-02",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 296,
+    "cliente": "ISDIN",
+    "actividad": "Backing + Tarima Desfile BTH",
+    "excel_subtotal": 4659.2,
+    "fechaProp": "2023-04-25",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-036",
+        "nombre": "Backing + Tarima Desfile BTH",
+        "cliente": "ISDIN",
+        "subtotal": 4291.84,
+        "fechaRegistro": "2023-04-25",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 299,
+    "cliente": "Crece Capital",
+    "actividad": "Diseño Conceptual de Oficinas",
+    "excel_subtotal": 4370.24,
+    "fechaProp": "2022-10-20",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-030",
+        "nombre": "Diseño Conceptual de Oficinas",
+        "cliente": "Crece Capital",
+        "subtotal": 3897.6,
+        "fechaRegistro": "2022-10-20",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 303,
+    "cliente": "Yichang",
+    "actividad": "Boxes Barilla",
+    "excel_subtotal": 4256.0,
+    "fechaProp": "2025-12-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-050",
+        "nombre": "Boxes Barilla",
+        "cliente": "Yichang",
+        "subtotal": 10345.44,
+        "fechaRegistro": "2025-12-18",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 305,
+    "cliente": "Grupo Patio",
+    "actividad": "Eventos FEBRERO en Boulevard Puntamar",
+    "excel_subtotal": 4043.2,
+    "fechaProp": "2025-12-11",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-051",
+        "nombre": "Eventos FEBRERO en Boulevard Puntamar",
+        "cliente": "Grupo Patio",
+        "subtotal": 15816.64,
+        "fechaRegistro": "2025-12-11",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 307,
+    "cliente": "ISDIN",
+    "actividad": "Implementación Boulevard de Asia (Mantenimiento Módulo)",
+    "excel_subtotal": 4032.0,
+    "fechaProp": "2023-01-06",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-037",
+        "nombre": "Implementación Boulevard de Asia (Mantenimiento Módulo)",
+        "cliente": "ISDIN",
+        "subtotal": 3707.2,
+        "fechaRegistro": "2023-01-06",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 310,
+    "cliente": "ISDIN",
+    "actividad": "Backings + parleds Evento Hilton",
+    "excel_subtotal": 3951.6,
+    "fechaProp": "2023-09-25",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-038",
+        "nombre": "Backings + parleds Evento Hilton",
+        "cliente": "ISDIN",
+        "subtotal": 3681.44,
+        "fechaRegistro": "2023-09-25",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 314,
+    "cliente": "CNCH",
+    "actividad": "Promo Chocolisto - Compra de Accesorios Canastas (Feb2022)",
+    "excel_subtotal": 3864.0,
+    "fechaProp": "2022-02-23",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-033",
+        "nombre": "Promo Chocolisto - Compra de Accesorios Canastas (Feb2022)",
+        "cliente": "CNCH",
+        "subtotal": 3679.2,
+        "fechaRegistro": "2022-02-23",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 316,
+    "cliente": "Inmobiliaria Clasem EOM",
+    "actividad": "Motovalla y Volanteo en Mercados AQP",
+    "excel_subtotal": 3718.4,
+    "fechaProp": "2026-03-23",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-085",
+        "nombre": "Motovalla y Volanteo en Mercados AQP",
+        "cliente": "Inmobiliaria Clasem EOM",
+        "subtotal": 9497.6,
+        "fechaRegistro": "2026-03-23",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 317,
+    "cliente": "TPZ",
+    "actividad": "Producción de Dípticos y Polos",
+    "excel_subtotal": 3709.44,
+    "fechaProp": "2022-03-25",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-035",
+        "nombre": "Producción de Dípticos y Polos",
+        "cliente": "TPZ",
+        "subtotal": 3419.36,
+        "fechaRegistro": "2022-03-25",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 322,
+    "cliente": "Alicorp",
+    "actividad": "Lanzamiento Baby Soft en Formatos Market Colombia",
+    "excel_subtotal": 3580.0,
+    "fechaProp": "2026-01-12",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-087",
+        "nombre": "Lanzamiento Baby Soft en Formatos Market Colombia",
+        "cliente": "Alicorp",
+        "subtotal": 3547.04,
+        "fechaRegistro": "2026-01-12",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 326,
+    "cliente": "Softys",
+    "actividad": "Implementación Rompetráficos Babysec y Cotidian",
+    "excel_subtotal": 3492.16,
+    "fechaProp": "2021-04-21",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2021-024",
+        "nombre": "Implementación Rompetráficos Babysec y Cotidian",
+        "cliente": "Softys",
+        "subtotal": 55417.6,
+        "fechaRegistro": "2021-04-21",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 333,
+    "cliente": "Topitop",
+    "actividad": "Merchandising Publicitario (Mayo2026)",
+    "excel_subtotal": 3326.4,
+    "fechaProp": "2026-05-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-088",
+        "nombre": "Merchandising Publicitario (Mayo2026)",
+        "cliente": "Topitop",
+        "subtotal": 27498.24,
+        "fechaRegistro": "2026-05-18",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 334,
+    "cliente": "Grupo Patio",
+    "actividad": "Activaciones Junio 2026",
+    "excel_subtotal": 3315.2,
+    "fechaProp": "2026-03-19",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-089",
+        "nombre": "Activaciones Junio 2026",
+        "cliente": "Grupo Patio",
+        "subtotal": 3360.0,
+        "fechaRegistro": "2026-03-19",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 359,
+    "cliente": "Leon Autos Ford",
+    "actividad": "Activación Mustang Day",
+    "excel_subtotal": 2922.64,
+    "fechaProp": "2026-03-31",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-090",
+        "nombre": "Activación Mustang Day",
+        "cliente": "Leon Autos Ford",
+        "subtotal": 2922.08,
+        "fechaRegistro": "2026-03-31",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 364,
+    "cliente": "Dealbrand",
+    "actividad": "Promoción Chori Challenge Braedt",
+    "excel_subtotal": 2800.0,
+    "fechaProp": "2023-10-24",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-050",
+        "nombre": "Promoción Chori Challenge Braedt",
+        "cliente": "Dealbrand",
+        "subtotal": 5617.92,
+        "fechaRegistro": "2023-10-24",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 365,
+    "cliente": "Alicorp",
+    "actividad": "Diseño CATMAN Galletas SPSA",
+    "excel_subtotal": 2800.0,
+    "fechaProp": "2020-09-17",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2020-025",
+        "nombre": "Diseño CATMAN Galletas SPSA",
+        "cliente": "Alicorp",
+        "subtotal": 2667.84,
+        "fechaRegistro": "2020-09-17",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 378,
+    "cliente": "Ecofactory",
+    "actividad": "Piloto Mercadista de 1 Mes",
+    "excel_subtotal": 2632.0,
+    "fechaProp": "2022-10-14",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-040",
+        "nombre": "Piloto Mercadista de 1 Mes",
+        "cliente": "Ecofactory",
+        "subtotal": 2750.72,
+        "fechaRegistro": "2022-10-14",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 392,
+    "cliente": "Ecofactory",
+    "actividad": "Gestión Comercial (Agosto)",
+    "excel_subtotal": 2500.0,
+    "fechaProp": "2023-06-30",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-051",
+        "nombre": "Gestión Comercial (Agosto)",
+        "cliente": "Ecofactory",
+        "subtotal": 336.0,
+        "fechaRegistro": "2023-06-30",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 398,
+    "cliente": "ISDIN",
+    "actividad": "Extensión de Permisos Módulo y Carrito ISDIN Boulevard Asia",
+    "excel_subtotal": 2364.32,
+    "fechaProp": "2023-02-15",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-053",
+        "nombre": "Extensión de Permisos Módulo y Carrito ISDIN Boulevard Asia",
+        "cliente": "ISDIN",
+        "subtotal": 2262.4,
+        "fechaRegistro": "2023-02-15",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 411,
+    "cliente": "Cementos Pacasmayo",
+    "actividad": "Servicio de Call Center para Capacitaciones Trujillo (Mayo)",
+    "excel_subtotal": 2217.6,
+    "fechaProp": "2025-05-13",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-063",
+        "nombre": "Servicio de Call Center para Capacitaciones Trujillo (Mayo)",
+        "cliente": "Cementos Pacasmayo",
+        "subtotal": 1103.2,
+        "fechaRegistro": "2025-05-13",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 414,
+    "cliente": "Dealbrand",
+    "actividad": "Landing Promo Día de la Madre y Día del Padre ETNA",
+    "excel_subtotal": 2184.0,
+    "fechaProp": "2025-04-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-064",
+        "nombre": "Landing Promo Día de la Madre y Día del Padre ETNA",
+        "cliente": "Dealbrand",
+        "subtotal": 2103.36,
+        "fechaRegistro": "2025-04-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 419,
+    "cliente": "Alicorp",
+    "actividad": "Diseños Navideños Blanca Flor 2023",
+    "excel_subtotal": 2150.0,
+    "fechaProp": "2023-09-11",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-055",
+        "nombre": "Diseños Navideños Blanca Flor 2023",
+        "cliente": "Alicorp",
+        "subtotal": 2072.0,
+        "fechaRegistro": "2023-09-11",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 421,
+    "cliente": "Cerámica San Lorenzo",
+    "actividad": "Activación en PDV",
+    "excel_subtotal": 2083.2,
+    "fechaProp": "2022-07-13",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-044",
+        "nombre": "Activación en PDV",
+        "cliente": "Cerámica San Lorenzo",
+        "subtotal": 9804.48,
+        "fechaRegistro": "2022-07-13",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 425,
+    "cliente": "Dealbrand",
+    "actividad": "Landing Promocional para ETNA (Jul y Ago)",
+    "excel_subtotal": 2016.0,
+    "fechaProp": "2025-06-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-066",
+        "nombre": "Landing Promocional para ETNA (Jul y Ago)",
+        "cliente": "Dealbrand",
+        "subtotal": 3864.0,
+        "fechaRegistro": "2025-06-18",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 426,
+    "cliente": "Dealbrand",
+    "actividad": "Landing Page para Promoción Otto Kunz (2024)",
+    "excel_subtotal": 2016.0,
+    "fechaProp": "2024-05-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-046",
+        "nombre": "Landing Page para Promoción Otto Kunz (2024)",
+        "cliente": "Dealbrand",
+        "subtotal": 3258.08,
+        "fechaRegistro": "2024-05-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 427,
+    "cliente": "ISDIN",
+    "actividad": "Implementación Boulevard de Asia (Licencia Funcionamiento Carrito)",
+    "excel_subtotal": 2005.92,
+    "fechaProp": "2022-12-28",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-045",
+        "nombre": "Implementación Boulevard de Asia (Licencia Funcionamiento Carrito)",
+        "cliente": "ISDIN",
+        "subtotal": 1915.2,
+        "fechaRegistro": "2022-12-28",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 436,
+    "cliente": "Dealbrand",
+    "actividad": "Landing para Promoción ETNA Abril2025",
+    "excel_subtotal": 1904.0,
+    "fechaProp": "2025-03-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-068",
+        "nombre": "Landing para Promoción ETNA Abril2025",
+        "cliente": "Dealbrand",
+        "subtotal": 3864.0,
+        "fechaRegistro": "2025-03-18",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 444,
+    "cliente": "Topitop",
+    "actividad": "Activaciones en 02 Tiendas",
+    "excel_subtotal": 1848.0,
+    "fechaProp": "2026-04-20",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-099",
+        "nombre": "Activaciones en 02 Tiendas",
+        "cliente": "Topitop",
+        "subtotal": 4257.12,
+        "fechaRegistro": "2026-04-20",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 455,
+    "cliente": "CNCH",
+    "actividad": "Premios Activación Tottus",
+    "excel_subtotal": 1750.0,
+    "fechaProp": "2026-01-20",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-104",
+        "nombre": "Premios Activación Tottus",
+        "cliente": "CNCH",
+        "subtotal": 1749.44,
+        "fechaRegistro": "2026-01-20",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 463,
+    "cliente": "Cementos Pacasmayo",
+    "actividad": "Visita Sorpresa Ferreteros Fortimax (Zonas alejadas)",
+    "excel_subtotal": 1624.0,
+    "fechaProp": "2025-09-03",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-073",
+        "nombre": "Visita Sorpresa Ferreteros Fortimax (Zonas alejadas)",
+        "cliente": "Cementos Pacasmayo",
+        "subtotal": 1696.8,
+        "fechaRegistro": "2025-09-03",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 475,
+    "cliente": "Alicorp",
+    "actividad": "Personal de Diseño para Taller Presencial (Bocetos)",
+    "excel_subtotal": 1512.0,
+    "fechaProp": "2023-11-24",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-062",
+        "nombre": "Personal de Diseño para Taller Presencial (Bocetos)",
+        "cliente": "Alicorp",
+        "subtotal": 2237.76,
+        "fechaRegistro": "2023-11-24",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 483,
+    "cliente": "ISDIN",
+    "actividad": "Evento Cala 2023 (Adicionales)",
+    "excel_subtotal": 1450.4,
+    "fechaProp": "2023-01-17",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-064",
+        "nombre": "Evento Cala 2023 (Adicionales)",
+        "cliente": "ISDIN",
+        "subtotal": 1382.08,
+        "fechaRegistro": "2023-01-17",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 489,
+    "cliente": "Casa Europa",
+    "actividad": "Elemento aéreo volumétrico - La Esquina Market Villa",
+    "excel_subtotal": 1366.4,
+    "fechaProp": "2020-01-28",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2020-044",
+        "nombre": "Elemento aéreo volumétrico - La Esquina Market Villa",
+        "cliente": "Casa Europa",
+        "subtotal": 1336.16,
+        "fechaRegistro": "2020-01-28",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 500,
+    "cliente": "Cirsa",
+    "actividad": "Servicio de Diseño por 1 Semana",
+    "excel_subtotal": 1280.0,
+    "fechaProp": "2025-04-23",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-076",
+        "nombre": "Servicio de Diseño por 1 Semana",
+        "cliente": "Cirsa",
+        "subtotal": 1348.48,
+        "fechaRegistro": "2025-04-23",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 507,
+    "cliente": "ISDIN",
+    "actividad": "Mantenimiento Dados (Dic 2023)",
+    "excel_subtotal": 1209.6,
+    "fechaProp": "2023-12-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-066",
+        "nombre": "Mantenimiento Dados (Dic 2023)",
+        "cliente": "ISDIN",
+        "subtotal": 28085.12,
+        "fechaRegistro": "2023-12-18",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 514,
+    "cliente": "Alicorp",
+    "actividad": "Diseños KV Cross Sell Core Alicorp",
+    "excel_subtotal": 1200.0,
+    "fechaProp": "2021-07-19",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2021-050",
+        "nombre": "Diseños KV Cross Sell Core Alicorp",
+        "cliente": "Alicorp",
+        "subtotal": 268.8,
+        "fechaRegistro": "2021-07-19",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 542,
+    "cliente": "ISDIN",
+    "actividad": "Evento Nutratopic Día 1 (Adicionales)",
+    "excel_subtotal": 1013.6,
+    "fechaProp": "2022-04-29",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-055",
+        "nombre": "Evento Nutratopic Día 1 (Adicionales)",
+        "cliente": "ISDIN",
+        "subtotal": 1056.16,
+        "fechaRegistro": "2022-04-29",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 556,
+    "cliente": "CNCH",
+    "actividad": "Promo Chocolisto - Backing y Cheque Gigante",
+    "excel_subtotal": 952.0,
+    "fechaProp": "2022-03-14",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-056",
+        "nombre": "Promo Chocolisto - Backing y Cheque Gigante",
+        "cliente": "CNCH",
+        "subtotal": 669.76,
+        "fechaRegistro": "2022-03-14",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 573,
+    "cliente": "Alicorp",
+    "actividad": "Diseño de Jalavistas y Cabeceras Aval (Feb2022)",
+    "excel_subtotal": 900.0,
+    "fechaProp": "2022-02-25",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-059",
+        "nombre": "Diseño de Jalavistas y Cabeceras Aval (Feb2022)",
+        "cliente": "Alicorp",
+        "subtotal": 806.4,
+        "fechaRegistro": "2022-02-25",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 586,
+    "cliente": "Alicorp",
+    "actividad": "Diseños Lavandería + 2 Primor Clásico PV",
+    "excel_subtotal": 860.0,
+    "fechaProp": "2020-10-23",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2020-063",
+        "nombre": "Diseños Lavandería + 2 Primor Clásico PV",
+        "cliente": "Alicorp",
+        "subtotal": 767.2,
+        "fechaRegistro": "2020-10-23",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 595,
+    "cliente": "ISDIN",
+    "actividad": "Alquiler de TV Peruderm",
+    "excel_subtotal": 840.0,
+    "fechaProp": "2022-10-27",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-063",
+        "nombre": "Alquiler de TV Peruderm",
+        "cliente": "ISDIN",
+        "subtotal": 845.6,
+        "fechaRegistro": "2022-10-27",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 614,
+    "cliente": "Lab Nutrition",
+    "actividad": "Juego Encaja la Ficha",
+    "excel_subtotal": 797.44,
+    "fechaProp": "2026-06-18",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2026-111",
+        "nombre": "Juego Encaja la Ficha",
+        "cliente": "Lab Nutrition",
+        "subtotal": 1016.96,
+        "fechaRegistro": "2026-06-18",
+        "estado": "Aprobado"
+      },
+      {
+        "id": "PRJ-2024-033",
+        "nombre": "Juego Encaja la Ficha",
+        "cliente": "Cirsa",
+        "subtotal": 1220.8,
+        "fechaRegistro": "2024-12-10",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 631,
+    "cliente": "ISDIN",
+    "actividad": "Implementación Boulevard de Asia (Elementos para Módulo)",
+    "excel_subtotal": 700.0,
+    "fechaProp": "2022-12-22",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-068",
+        "nombre": "Implementación Boulevard de Asia (Elementos para Módulo)",
+        "cliente": "ISDIN",
+        "subtotal": 728.0,
+        "fechaRegistro": "2022-12-22",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 638,
+    "cliente": "ISDIN",
+    "actividad": "Revestimiento de Cubos Feb2024",
+    "excel_subtotal": 694.4,
+    "fechaProp": "2024-02-08",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-059",
+        "nombre": "Revestimiento de Cubos Feb2024",
+        "cliente": "ISDIN",
+        "subtotal": 1312.64,
+        "fechaRegistro": "2024-02-08",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 656,
+    "cliente": "Juguete Pendiente",
+    "actividad": "Visita y Toma Medidas Acción Navidad Falabella en Albergue",
+    "excel_subtotal": 638.4,
+    "fechaProp": "2022-11-29",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-071",
+        "nombre": "Visita y Toma Medidas Acción Navidad Falabella en Albergue",
+        "cliente": "Juguete Pendiente",
+        "subtotal": 228.48,
+        "fechaRegistro": "2022-11-29",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 698,
+    "cliente": "Bank of China",
+    "actividad": "Invitaciones para Impresión Mayo 2022",
+    "excel_subtotal": 551.04,
+    "fechaProp": "2022-05-23",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2022-079",
+        "nombre": "Invitaciones para Impresión Mayo 2022",
+        "cliente": "Bank of China",
+        "subtotal": 140.0,
+        "fechaRegistro": "2022-05-23",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 718,
+    "cliente": "Colombina",
+    "actividad": "Activación Itinerante Bon Bon Bum Luloflow (Movilidad Adicional)",
+    "excel_subtotal": 504.0,
+    "fechaProp": "2024-05-16",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2024-064",
+        "nombre": "Activación Itinerante Bon Bon Bum Luloflow (Movilidad Adicional)",
+        "cliente": "Colombina",
+        "subtotal": 2834.72,
+        "fechaRegistro": "2024-05-16",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 726,
+    "cliente": "Campari",
+    "actividad": "Cambio en APP Aperol Spritz",
+    "excel_subtotal": 500.0,
+    "fechaProp": "2019-12-23",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2019-070",
+        "nombre": "Cambio en APP Aperol Spritz",
+        "cliente": "Campari",
+        "subtotal": 478.24,
+        "fechaRegistro": "2019-12-23",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 728,
+    "cliente": "ISDIN",
+    "actividad": "Cambios Módulo ISDIN Asia Adicionales (Funda para Banca)",
+    "excel_subtotal": 487.2,
+    "fechaProp": "2023-06-07",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-087",
+        "nombre": "Cambios Módulo ISDIN Asia Adicionales (Funda para Banca)",
+        "cliente": "ISDIN",
+        "subtotal": 546.56,
+        "fechaRegistro": "2023-06-07",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 765,
+    "cliente": "Cementos Pacasmayo",
+    "actividad": "Premios Ferreterías Protegidas (adicional traslado impresoras)",
+    "excel_subtotal": 442.4,
+    "fechaProp": "2025-10-14",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-099",
+        "nombre": "Premios Ferreterías Protegidas (adicional traslado impresoras)",
+        "cliente": "Cementos Pacasmayo",
+        "subtotal": 470.4,
+        "fechaRegistro": "2025-10-14",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 784,
+    "cliente": "Dealbrand",
+    "actividad": "Landing para Promoción ETNA Abril2025 (Mes Adicional Junio)",
+    "excel_subtotal": 392.0,
+    "fechaProp": "2025-05-29",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-101",
+        "nombre": "Landing para Promoción ETNA Abril2025 (Mes Adicional Junio)",
+        "cliente": "Dealbrand",
+        "subtotal": 50.4,
+        "fechaRegistro": "2025-05-29",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 830,
+    "cliente": "Alicorp",
+    "actividad": "Rediseño Cartuchera Alpesa (Jun2023)",
+    "excel_subtotal": 250.0,
+    "fechaProp": "2023-06-15",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2023-094",
+        "nombre": "Rediseño Cartuchera Alpesa (Jun2023)",
+        "cliente": "Alicorp",
+        "subtotal": 249.76,
+        "fechaRegistro": "2023-06-15",
+        "estado": "Aprobado"
+      }
+    ]
+  },
+  {
+    "row": 874,
+    "cliente": "Cirsa",
+    "actividad": "Ruletas Probabilísticas",
+    "excel_subtotal": 0.0,
+    "fechaProp": "2025-06-10",
+    "estado": "4.APROBADO",
+    "candidates": [
+      {
+        "id": "PRJ-2025-106",
+        "nombre": "Ruletas Probabilísticas",
+        "cliente": "Cirsa",
+        "subtotal": 7347.2,
+        "fechaRegistro": "2025-06-10",
+        "estado": "Aprobado"
+      }
+    ]
+  }
+]

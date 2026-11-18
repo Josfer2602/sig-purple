@@ -1,0 +1,100 @@
+{
+  "metadata": {
+    "client": "Byma Instruments",
+    "brand": "Byma Instruments",
+    "requirement": "Stand para Feria Expotitikaka",
+    "date": "2026-09-16 00:00:00",
+    "businessName": "Purple BTL S.A.C.",
+    "paymentConditions": "30 días de crédito"
+  },
+  "categories": [
+    {
+      "name": "PRODUCCIÓN DE STAND",
+      "items": [
+        {
+          "name": "PRODUCCIÓN DE STAND",
+          "quantity": 1.0,
+          "dates": 1.0,
+          "details": [
+            "- Producción de Stand.",
+            "- Fecha de instalación: 19 a 21 de Octubre.",
+            "- Desinstalación: 27 de Octubre.",
+            "- Área de stand: 2.50 mts de alto x 4.00 mts de ancho x 3.00 mts mts de alto.",
+            "- Material de stand:",
+            "  * 03 paredes de MDF + bastidor de madera + vinil.",
+            "  * 01 cenefa de MDF + bastidor de madera + vinil.",
+            "- Mobiliario:",
+            "  * Alquiler de 01 mesa alta + 02 sillas altas.",
+            "  * Alquiler de 01 counter publicitario 110 cm de alto x 100 cm de ancho x 40 cm",
+            "de profundidad.",
+            "  * Alquiler de 01 TV 43'.",
+            "  * Alquiler de Folletero de estructura de aluminio 27 cm de ancho x 146 cm",
+            "alto.",
+            "  * Tiempo de producción: 10 días hábiles."
+          ],
+          "internalMultiplierPercent": 8.27,
+          "financialExpensePercent": 10.0,
+          "providerContact": "",
+          "productionTime": "",
+          "subItems": [
+            {
+              "name": "PRODUCCIÓN DE STAND",
+              "description": "",
+              "quantity": 1.0,
+              "dates": 1.0,
+              "unitCost": 11180.0,
+              "providerName": ""
+            },
+            {
+              "name": "IMPREVISTOS",
+              "description": "IMPREVISTOS(dejar)",
+              "quantity": 1.0,
+              "dates": 1.0,
+              "unitCost": 600.0,
+              "providerName": "Subí 220"
+            }
+          ]
+        },
+        {
+          "name": "TRANSPORTE, INSTALACIÓN, VIÁTICOS Y DESINSTALACIÓN",
+          "quantity": 1.0,
+          "dates": 1.0,
+          "details": [
+            "- Incluye:",
+            "  * Transporte (Lima - Puno - Lima), producción en Lima.",
+            "  * Duración de viaje entre tramos (24 horas aproximadamente).",
+            "  * Personal asignado para la instalación y desinstalación.",
+            "  * Viáticos por 08 días (Del 20 al 27 de octubre) de personal asignado para",
+            "la instalación y desinstalación.",
+            "  * SCTR.",
+            "  * EPP.",
+            "  * Supervisor asignado para la instalación (01 fecha) y desinstalación",
+            "(01 fecha)."
+          ],
+          "internalMultiplierPercent": 5.55,
+          "financialExpensePercent": 10.0,
+          "providerContact": "",
+          "productionTime": "",
+          "subItems": [
+            {
+              "name": "TRANSPORTE, INSTALACIÓN, VIÁTICOS Y DESINSTALACIÓN",
+              "description": "",
+              "quantity": 1.0,
+              "dates": 1.0,
+              "unitCost": 8620.0,
+              "providerName": ""
+            },
+            {
+              "name": "Imprevistos",
+              "description": "",
+              "quantity": 1,
+              "dates": 1,
+              "unitCost": 0.0,
+              "providerName": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

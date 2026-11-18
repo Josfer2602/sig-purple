@@ -1,0 +1,259 @@
+import React, { useState, useEffect } from 'react';
+import { useGlobalContext, API_URL } from '../context/GlobalContext';
+
+export const LoginView: React.FC = () => {
+  const { login } = useGlobalContext();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const loginError = params.get('login_error');
+    const deniedEmail = params.get('email');
+    if (loginError === 'domain_not_allowed') {
+      setError(`Acceso denegado: El correo "${deniedEmail || ''}" no pertenece a Purple BTL. Solo se permiten cuentas corporativas @purplebtl.com.`);
+    } else if (loginError) {
+      setError(`Error de inicio de sesión con Google: ${loginError}`);
+    }
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/auth/google/login-url?frontendUrl=${encodeURIComponent(window.location.origin)}`);
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError('No se pudo generar el enlace de inicio de sesión con Google');
+        setGoogleLoading(false);
+      }
+    } catch (e: any) {
+      setError('Error al contactar con el servidor de autenticación');
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const contentType = res.headers.get('content-type');
+      let data: any = {};
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        throw new Error('El servidor backend devolvió un error interno (500). Por favor verifica los registros de la consola.');
+      }
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al iniciar sesión');
+      }
+
+      login(data.token, data.user);
+    } catch (err: any) {
+      if (err.message === 'Failed to fetch') {
+        setError('No se puede conectar al servidor. Asegúrate de que el backend esté corriendo (npm run dev en /server).');
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+      padding: '20px',
+      fontFamily: 'Inter, sans-serif'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '420px',
+        background: 'rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: '20px',
+        padding: '48px 40px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
+      }}>
+        <img
+          src="https://brandgeeks.pe/wp-content/uploads/2026/06/PurpleNEW-02.png"
+          alt="SIG Purple"
+          style={{ height: '70px', objectFit: 'contain', marginBottom: '32px' }}
+          onError={(e: any) => { e.target.style.display = 'none'; }}
+        />
+
+        <h2 style={{ color: '#fff', marginBottom: '8px', fontSize: '26px', fontWeight: 700, textAlign: 'center' }}>
+          Iniciar Sesión
+        </h2>
+        <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '32px', fontSize: '14px' }}>
+          SIG Purple — Sistema de Gestión
+        </p>
+
+        {error && (
+          <div style={{
+            width: '100%',
+            padding: '12px 16px',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#fca5a5',
+            marginBottom: '20px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            lineHeight: '1.5'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Botón Principal: Continuar con Google Workspace */}
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={googleLoading}
+          style={{
+            width: '100%',
+            padding: '13px 18px',
+            background: '#ffffff',
+            color: '#1e293b',
+            border: '1px solid rgba(255,255,255,0.4)',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            cursor: googleLoading ? 'wait' : 'pointer',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+            marginBottom: '20px'
+          }}
+          onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+          </svg>
+          <span>{googleLoading ? 'Redirigiendo a Google...' : 'Continuar con Google Workspace'}</span>
+        </button>
+
+        {/* Divisor */}
+        <div style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          margin: '0 0 20px 0'
+        }}>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.15)' }} />
+          <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            o con contraseña
+          </span>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.15)' }} />
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: 500 }}>
+              Correo Electrónico
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="ejemplo@empresa.com"
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                color: '#ffffff',
+                fontSize: '14px',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.8)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: 500 }}>
+              Contraseña
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="••••••••"
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                color: '#ffffff',
+                fontSize: '14px',
+                outline: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={e => e.target.style.borderColor = 'rgba(139,92,246,0.8)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              marginTop: '8px',
+              padding: '14px',
+              background: loading ? 'rgba(139,92,246,0.5)' : 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '15px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              letterSpacing: '0.5px',
+              boxShadow: '0 4px 15px rgba(139,92,246,0.4)'
+            }}
+          >
+            {loading ? 'Verificando...' : 'Ingresar al Sistema'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+

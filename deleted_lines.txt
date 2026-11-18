@@ -1,0 +1,372 @@
+        item.subItems = item.subItems || [];
+        item.details = Array.isArray(item.details) ? item.details : [];
+      });
+    });
+    return q;
+  });
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileEditItem, setMobileEditItem] = useState<{ categoryId: string, item: QuoteItem } | null>(null);
+
+  // Manual save only to avoid spamming the database
+
+  const handleUpdateItem = (categoryId: string, itemId: string, field: string, value: any) => {
+    setQuote(prev => {
+      const newQuote = { ...prev };
+      const category = newQuote.categories.find(c => c.id === categoryId);
+      if (category) {
+        const item = category.items.find(i => i.id === itemId);
+        if (item) {
+          (item as any)[field] = value;
+        }
+      }
+      return newQuote;
+    });
+  };
+
+  const handleUpdateSubItem = (categoryId: string, itemId: string, subId: string, field: string, value: any) => {
+    setQuote(prev => {
+      const newQuote = { ...prev };
+      const category = newQuote.categories.find(c => c.id === categoryId);
+      if (category) {
+        const item = category.items.find(i => i.id === itemId);
+        if (item) {
+          const subItem = item.subItems.find(s => s.id === subId);
+          if (subItem) {
+            (subItem as any)[field] = value;
+          }
+        }
+      }
+      return newQuote;
+    });
+  };
+
+  const handleMoveCategory = (categoryId: string, direction: 'up' | 'down') => {
+    setQuote(prev => {
+      const newQuote = { ...prev };
+      const idx = newQuote.categories.findIndex(c => c.id === categoryId);
+      if (idx === -1) return prev;
+      if (direction === 'up' && idx > 0) {
+        [newQuote.categories[idx - 1], newQuote.categories[idx]] = [newQuote.categories[idx], newQuote.categories[idx - 1]];
+      } else if (direction === 'down' && idx < newQuote.categories.length - 1) {
+        [newQuote.categories[idx + 1], newQuote.categories[idx]] = [newQuote.categories[idx], newQuote.categories[idx + 1]];
+      }
+      return newQuote;
+    });
+  };
+
+  const handleMoveItem = (categoryId: string, itemId: string, direction: 'up' | 'down') => {
+    setQuote(prev => {
+      const newQuote = { ...prev };
+      const category = newQuote.categories.find(c => c.id === categoryId);
+      if (category) {
+        const idx = category.items.findIndex(i => i.id === itemId);
+        if (idx === -1) return prev;
+        if (direction === 'up' && idx > 0) {
+          [category.items[idx - 1], category.items[idx]] = [category.items[idx], category.items[idx - 1]];
+        } else if (direction === 'down' && idx < category.items.length - 1) {
+          [category.items[idx + 1], category.items[idx]] = [category.items[idx], category.items[idx + 1]];
+        }
+      }
+      return newQuote;
+    });
+  };
+
+  const handleImportItems = (itemsToImport: QuoteItem[], categoryId: string) => {
+    setQuote(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id === categoryId) {
+          const newItems = itemsToImport.map(item => ({
+            ...item,
+            id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            subItems: item.subItems.map(sub => ({
+              ...sub,
+              id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+            }))
+          }));
+          return { ...cat, items: [...cat.items, ...newItems] };
+        }
+        return cat;
+      })
+    }));
+  };
+
+  const handleAddCategory = () => {
+    setQuote(prev => ({
+      ...prev,
+      categories: [
+        ...prev.categories,
+        {
+          id: `cat-${Date.now()}`,
+          name: 'NUEVA CATEGORÍA',
+          items: []
+        }
+      ]
+    }));
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    if (window.confirm('¿Estás seguro de eliminar esta categoría y todos sus ítems?')) {
+      setQuote(prev => ({
+        ...prev,
+        categories: prev.categories.filter(c => c.id !== categoryId)
+      }));
+    }
+  };
+
+  const handleAddItem = (categoryId?: string) => {
+    setQuote(prev => {
+      const newQuote = JSON.parse(JSON.stringify(prev)); // Deep clone
+      let targetCategoryId = categoryId;
+      if (!targetCategoryId && newQuote.categories.length > 0) {
+        targetCategoryId = newQuote.categories[newQuote.categories.length - 1].id;
+      }
+      
+      const cat = newQuote.categories.find((c: any) => c.id === targetCategoryId);
+      if (cat) {
+        cat.items.push({
+          id: `item-${Date.now()}`,
+          name: 'Nuevo Ítem',
+          quantity: 1,
+          dates: 1,
+          details: ['Detalle 1'],
+          internalMultiplierPercent: 10,
+          financialExpensePercent: 10,
+          providerContact: '',
+          productionTime: '',
+          subItems: []
+        });
+      }
+      return newQuote;
+    });
+  };
+
+  const handleDeleteItem = (categoryId: string, itemId: string) => {
+    if (window.confirm('¿Estás seguro de eliminar este ítem?')) {
+      setQuote(prev => {
+        const newQuote = { ...prev };
+        const category = newQuote.categories.find(c => c.id === categoryId);
+        if (category) {
+          category.items = category.items.filter(i => i.id !== itemId);
+        }
+        return newQuote;
+      });
+    }
+  };
+
+  const handleAddSubItem = (categoryId: string, itemId: string) => {
+    setQuote(prev => {
+      const newQuote = JSON.parse(JSON.stringify(prev));
+      const category = newQuote.categories.find((c: any) => c.id === categoryId);
+      if (category) {
+        const item = category.items.find((i: any) => i.id === itemId);
+        if (item) {
+          item.subItems.push({
+            id: `sub-${Date.now()}`,
+            name: 'Nuevo Sub-ítem',
+            quantity: 1,
+            dates: 1,
+            unitCost: 0,
+            providerName: ''
+          });
+        }
+      }
+      return newQuote;
+    });
+  };
+
+  const handleDeleteSubItem = (categoryId: string, itemId: string, subId: string) => {
+    if (window.confirm('¿Estás seguro de eliminar este sub-ítem?')) {
+      setQuote(prev => {
+        const newQuote = JSON.parse(JSON.stringify(prev));
+        const category = newQuote.categories.find((c: any) => c.id === categoryId);
+        if (category) {
+          const item = category.items.find((i: any) => i.id === itemId);
+          if (item) {
+            item.subItems = item.subItems.filter((s: any) => s.id !== subId);
+          }
+        }
+        return newQuote;
+      });
+    }
+  };
+
+  const calculateTotals = () => {
+    let subTotalProviders = 0;
+    let subTotalClient = 0;
+
+    const categories = quote.categories || [];
+    categories.forEach(cat => {
+      const items = cat.items || [];
+      items.forEach(item => {
+        const totalProvider = item.subItems.reduce((acc, sub) => acc + (sub.unitCost * sub.quantity * sub.dates), 0);
+        const internalMultiplierAmount = totalProvider * (item.internalMultiplierPercent / 100);
+        const financialExpense = totalProvider * (item.financialExpensePercent / 100);
+        
+        const rawCalculatedClientCost = totalProvider + internalMultiplierAmount + financialExpense;
+        const clientUnitCost = Math.round(rawCalculatedClientCost / (item.quantity * item.dates || 1));
+        const totalClient = clientUnitCost * item.quantity * item.dates;
+
+        subTotalProviders += totalProvider;
+        subTotalClient += totalClient;
+      });
+    });
+
+    const feeAgencia = subTotalClient * 0.12; // 12% fee
+    const finalTotalClient = subTotalClient + feeAgencia;
+
+    return {
+      subTotalProviders,
+      subTotalClient,
+      feeAgencia,
+      finalTotalClient
+    };
+  };
+
+  const getClientName = (projectId?: string, quoteClient?: string) => {
+    if (quoteClient) {
+      const found = clientes.find(c => c.id === quoteClient);
+      if (found) return found.empresa;
+      return quoteClient;
+    }
+    if (!projectId) return '-';
+    const proyecto = proyectos.find(p => p.id === projectId);
+    if (!proyecto) return '-';
+    const cliente = clientes.find(c => c.id === proyecto.clienteId);
+    return cliente ? cliente.empresa : '-';
+  };
+
+  const totals = calculateTotals();
+
+  // Lógica de Workflow y Permisos
+  const isReadOnly = (() => {
+    if (quote.isTemplate) return false; // Las plantillas siempre se pueden editar
+    if (currentUserRole === 'Producción' && !['En Creación', 'Rechazado'].includes(quote.status)) return true;
+    if (currentUserRole === 'Cuentas' && quote.status !== 'Por Revisar - Cuentas') return true;
+    if (currentUserRole === 'Directorio' && quote.status !== 'Por Revisar - Directorio') return true;
+    return false;
+  })();
+
+  const handleWorkflowAction = async (newStatus: string, actionName: string, details: string) => {
+    const updated = { ...quote, status: newStatus };
+    setQuote(updated);
+    // Para asegurar que se guarda y cambia el estado usando la prop global que muestra el overlay
+    await onUpdateGlobal(updated);
+    onBack(); // Salir después de la acción
+  };
+
+  return (
+    <div className="animate-fade-in">
+      <div className="view-header" style={{ marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 300px' }}>
+          <button className="btn-icon" onClick={onBack} title="Volver al Listado">
+            <ArrowLeft size={20} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              value={quote.isTemplate ? (quote.templateName || '') : (quote.requirement || '')}
+              onChange={(e) => setQuote(prev => (
+                quote.isTemplate 
+                  ? { ...prev, templateName: e.target.value }
+                  : { ...prev, requirement: e.target.value }
+              ))}
+              placeholder={quote.isTemplate ? "Nombre de la Plantilla" : "Nombre de la Cotización"}
+              style={{ 
+                margin: 0, 
+                fontSize: '1.25rem', 
+                fontWeight: '600', 
+                color: 'var(--text-primary)', 
+                background: 'transparent', 
+                border: 'none', 
+                outline: 'none', 
+                width: '100%',
+                maxWidth: '400px',
+                borderBottom: '1px dashed rgba(102, 45, 145, 0.4)',
+                paddingBottom: '2px'
+              }}
+              onFocus={(e) => e.target.style.borderBottom = '1px dashed var(--accent-primary)'}
+              onBlur={(e) => e.target.style.borderBottom = '1px dashed rgba(102, 45, 145, 0.4)'}
+              title={isReadOnly ? "Modo Lectura" : "Haz clic para editar el nombre"}
+              readOnly={isReadOnly}
+            />
+            {quote.client && <p style={{ color: 'var(--text-muted)', margin: '4px 0 0 0', fontSize: '0.85rem' }}>{getClientName(quote.projectId, quote.client)}</p>}
+          </div>
+          {isReadOnly && (
+            <div style={{ padding: '4px 8px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              🔒 Solo Lectura
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* WORKFLOW BUTTONS */}
+          {!isReadOnly && currentUserRole === 'Producción' && (
+            <button className="btn-primary" onClick={() => handleWorkflowAction('Por Revisar - Cuentas', 'Enviar a Cuentas', 'Enviado para revisión de Cuentas')} style={{ backgroundColor: 'var(--accent-primary)', padding: '6px 12px', fontSize: '0.85rem' }}>
+              Enviar a Cuentas
+            </button>
+          )}
+          {!isReadOnly && currentUserRole === 'Cuentas' && (
+            <>
+              <button className="btn-primary" onClick={() => handleWorkflowAction('Por Revisar - Directorio', 'Aprobar y Enviar', 'Cuentas aprobó y envió a Directorio')} style={{ backgroundColor: 'var(--success)', padding: '6px 12px', fontSize: '0.85rem' }}>
+                Aprobar
+              </button>
+              <button className="btn-secondary" onClick={() => handleWorkflowAction('Rechazado', 'Rechazar', 'Cuentas rechazó a Producción')} style={{ color: 'var(--danger)', borderColor: 'var(--danger)', padding: '6px 12px', fontSize: '0.85rem' }}>
+                Rechazar
+              </button>
+            </>
+          )}
+          {!isReadOnly && currentUserRole === 'Directorio' && (
+            <>
+              <button className="btn-primary" onClick={() => handleWorkflowAction('Aprobado', 'Aprobar Final', 'Directorio aprobó la cotización')} style={{ backgroundColor: 'var(--success)', padding: '6px 12px', fontSize: '0.85rem' }}>
+                Aprobar
+              </button>
+              <button className="btn-secondary" onClick={() => handleWorkflowAction('Rechazado', 'Rechazar', 'Directorio rechazó a Producción')} style={{ color: 'var(--danger)', borderColor: 'var(--danger)', padding: '6px 12px', fontSize: '0.85rem' }}>
+                Rechazar
+              </button>
+            </>
+          )}
+
+          {(currentUserRole === 'Cuentas' || currentUserRole === 'Directorio') && (
+             <button className="btn-secondary" onClick={() => handleWorkflowAction('Enviado', 'Marcar Enviado', 'Marcado como Enviado al Cliente')} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+               Marcar Enviado
+             </button>
+          )}
+
+          <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 4px' }}></div>
+
+          {!isReadOnly && (
+            <button className="btn-secondary" onClick={() => setIsImportModalOpen(true)} title="Importar Ítems" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+              <Download size={16} /> Importar
+            </button>
+          )}
+          {!isReadOnly && (
+            <button className="btn-primary" onClick={() => { onUpdateGlobal(quote); }} style={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 12px', fontSize: '0.85rem' }} title="Guardar Cambios">
+              <Save size={16} /> Guardar
+            </button>
+          )}
+          <button className="btn-primary" onClick={() => {
+            onUpdateGlobal(quote);
+            localStorage.setItem('printQuoteData', JSON.stringify(quote));
+            setTimeout(() => window.open(`?print=${quote.id}`, '_blank'), 500);
+          }} title="Exportar PDF" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+            <Download size={16} /> PDF
+          </button>
+          <button className="btn-primary" onClick={() => {
+            onUpdateGlobal(quote);
+            localStorage.setItem('printQuoteData', JSON.stringify(quote));
+            navigator.clipboard.writeText(`${window.location.origin}/?print=${quote.id}`);
+            toast.success('¡Enlace copiado al portapapeles!');
+          }} title="Copiar Enlace para Compartir" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+            <Copy size={16} /> Link
+          </button>
+          <button className="btn-primary" onClick={() => {
+            onUpdateGlobal(quote);
+            setIsEmailModalOpen(true);
+          }} style={{ backgroundColor: 'var(--accent-primary)', padding: '6px 12px', fontSize: '0.85rem' }} title="Enviar al Cliente por Correo">
+            <Mail size={16} /> Enviar
+          </button>
+        </div>
+      </div>

@@ -1,0 +1,490 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AppConfig {
+  id                        String  @id @default("global")
+  headerHtml                String?
+  footerHtml                String?
+  ordenHeaderHtml           String?
+  ordenFooterHtml           String?
+  pagoHeaderHtml            String?
+  pagoFooterHtml            String?
+  listasDinamicas           String? // JSON string containing all dynamic lists
+  notificacionPagosEmails   String? // Comma-separated emails
+  notificacionPagosSubject  String?
+  notificacionPagosTemplate String?
+  habilitarNotificacionPagos Boolean? @default(false)
+  notificarProveedorPago     Boolean? @default(false)
+}
+
+model Cliente {
+  id       String @id @default(uuid())
+  empresa  String
+  contacto String
+  cargo    String?
+  email    String
+  telefono String
+  estado   String
+
+  contactos        ContactoCliente[]
+  proyectos        Proyecto[]
+  ordenes          Orden[]
+  pagos            Pago[]
+  gastosProduccion GastoProduccion[]
+}
+
+model ContactoCliente {
+  id          String   @id @default(uuid())
+  clienteId   String
+  nombre      String
+  cargo       String?
+  email       String?
+  telefono    String?
+  esPrincipal Boolean  @default(false)
+
+  cliente     Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@index([clienteId])
+}
+
+model Proyecto {
+  id                  String  @id @default(uuid())
+  fechaRegistro       String
+  fechaAprobacion     String?
+  nombre              String
+  clienteId           String
+  tipoServicio        String
+  tipoProyecto        String
+  presupuestoEstimado String?
+  subtotal            Float
+  moneda              String? @default("PEN")
+  estado              String
+  ordenesCompra       String?
+  ordenesServicio     String?
+  projectManager      String?
+  statusActividad     String?
+  comentarios         String?
+  gastosAdicionales     Float?   @default(0.0)
+  gastosAdicionalesNota String?
+  driveFolderId       String?
+  driveFolderUrl      String?
+
+  contactoId            String?
+  contactoNombre        String?
+  contactoCargo         String?
+  contactoEmail         String?
+  contactoTelefono      String?
+
+  cliente          Cliente           @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  ordenes          Orden[]
+  pagos            Pago[]
+  gantts           ProjectGantt[]
+  books            ProjectBook[]
+  gastosProduccion GastoProduccion[]
+  facturasCliente  FacturaCliente[]
+
+  @@index([clienteId])
+  @@index([estado])
+}
+
+model Proveedor {
+  id                String  @id @default(uuid())
+  razonSocial       String
+  nombre            String  @default("")
+  ruc               String  @default("")
+  correo            String  @default("")
+  telefono          String  @default("")
+  tipoDocumento     String  @default("Factura")
+  categoria         String?
+  categorias        String? // JSON string: string[] (múltiples categorías)
+  subcategorias     String? // JSON string: string[] (múltiples subcategorías)
+  tags              String? // JSON string: string[] (etiquetas clave)
+  web               String?
+  ciudad            String? @default("Lima")
+  tipoProveedor     String? @default("Trabajado") // "Trabajado" o "Brochure"
+  esConfiable       Boolean @default(true)
+  motivoNoConfiable String?
+  documentos        String? // JSON string: [{ id, name, url, tipo, fecha, size }]
+  servicios         String?
+  direccion         String?
+  driveFolderId     String?
+  driveFolderUrl    String?
+
+  cuentas CuentaBancaria[]
+  ordenes Orden[]
+  pagos   Pago[]
+}
+
+model CuentaBancaria {
+  id           String  @id @default(uuid())
+  banco        String
+  numeroCuenta String
+  cci          String
+  tipoCuenta   String?
+  proveedorId  String
+
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
+}
+
+model Quote {
+  id                String  @id @default(uuid())
+  projectId         String?
+  version           Int
+  isTemplate        Boolean
+  templateName      String?
+  status            String
+  client            String
+  brand             String
+  requirement       String
+  date              String
+  businessName      String
+  ruc               String
+  paymentConditions String
+  currency          String?  @default("PEN") // "PEN" | "USD"
+  exchangeRate      Float?   @default(1.0)
+  includeIgv        Boolean? @default(false)
+
+  categories       QuoteCategory[]
+  ordenes          Orden[]
+  pagos            Pago[]
+  gastosProduccion GastoProduccion[]
+  history          QuoteHistory[]
+}
+
+model QuoteCategory {
+  id      String @id @default(uuid())
+  name    String
+  quoteId String
+
+  quote Quote       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  items QuoteItem[]
+}
+
+model QuoteItem {
+  id                        String @id @default(uuid())
+  name                      String
+  quantity                  Int
+  dates                     Int
+  details                   String // JSON string to store array of details
+  internalMultiplierPercent Float
+  financialExpensePercent   Float
+  providerContact           String
+  productionTime            String
+  categoryId                String
+
+  category QuoteCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subItems QuoteSubItem[]
+}
+
+model QuoteSubItem {
+  id           String  @id @default(uuid())
+  name         String
+  description  String
+  quantity     Int
+  dates        Int
+  unitCost     Float
+  providerName String
+  providerId   String?
+  itemId       String
+
+  item QuoteItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  // No direct foreign key for OrdenSubItem below to allow flexible creation
+}
+
+model Orden {
+  id               String  @id
+  proveedorId      String
+  clienteId        String
+  proyectoId       String
+  quoteId          String
+  fechaEmision     String
+  total            Float
+  estadoEntrega    String
+  condicionesPago  String?
+  tipoOrden        String  @default("Compra")
+  cuentaBancariaId        String?
+  titulo                  String?
+  pdfUrl                  String?
+  driveFileId             String?
+  cotizacionProveedorUrl  String?
+  cotizacionProveedorName String?
+  aplicaDetraccion        Boolean? @default(false)
+  porcentajeDetraccion    Float?   @default(0)
+  montoDetraccion         Float?   @default(0)
+  montoNeto               Float?
+
+  proveedor Proveedor      @relation(fields: [proveedorId], references: [id])
+  cliente   Cliente        @relation(fields: [clienteId], references: [id])
+  proyecto  Proyecto       @relation(fields: [proyectoId], references: [id])
+  quote     Quote          @relation(fields: [quoteId], references: [id])
+  items     OrdenSubItem[]
+  pagos     Pago[]
+
+  @@index([proveedorId])
+  @@index([clienteId])
+  @@index([proyectoId])
+  @@index([quoteId])
+}
+
+model OrdenSubItem {
+  id                String  @id @default(uuid())
+  ordenId           String
+  quoteSubItemId    String // Stored as plain string since Quote structure might be dynamic
+  name              String
+  quantity          Int
+  unitCost          Float
+  total             Float
+  customDescription String?
+  costPercentage    Float?
+
+  orden Orden @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+}
+
+model Pago {
+  id                  String  @id @default(uuid())
+  clienteId           String
+  proyectoId          String
+  quoteId             String
+  ordenId             String
+  proveedorId         String
+  tipoPago            String
+  monto               Float
+  numeroComprobante   String
+  comprobanteUrl      String?
+  comprobanteDeposito String?
+  fechaRegistro       String
+  fechaPago           String
+  estado              String  @default("Pendiente")
+  concepto            String?
+  comentarios         String?
+  notas               String?
+  pdfUrl              String?
+  driveFileId         String?
+  aplicaDetraccion    Boolean? @default(false)
+  porcentajeDetraccion Float?  @default(0)
+  montoDetraccion     Float?   @default(0)
+  montoNeto           Float?
+
+  cliente   Cliente   @relation(fields: [clienteId], references: [id])
+  proyecto  Proyecto  @relation(fields: [proyectoId], references: [id])
+  quote     Quote     @relation(fields: [quoteId], references: [id])
+  orden     Orden     @relation(fields: [ordenId], references: [id])
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id])
+
+  @@index([clienteId])
+  @@index([proyectoId])
+  @@index([ordenId])
+  @@index([proveedorId])
+  @@index([estado])
+}
+
+model ProjectGantt {
+  id         String  @id @default(uuid())
+  projectId  String
+  version    Int
+  status     String
+  name       String?
+  shareToken String  @unique
+  settings   String? // JSON string for gantt config like blocked days
+
+  proyecto Proyecto    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks    GanttTask[]
+}
+
+model GanttTask {
+  id           String  @id @default(uuid())
+  ganttId      String
+  name         String
+  startDate    String
+  endDate      String
+  progress     Int
+  dependencies String // Comma separated IDs of tasks this depends on
+  type         String // "task", "milestone", "project"
+  assignee     String?
+  color        String? // Hex color code for the task bar
+
+  gantt ProjectGantt @relation(fields: [ganttId], references: [id], onDelete: Cascade)
+}
+
+model GastoProduccion {
+  id                String  @id @default(uuid())
+  clienteId         String
+  proyectoId        String
+  quoteId           String
+  tipoComprobante   String
+  numeroComprobante String
+  comprobanteUrl    String?
+  fechaEmision      String
+  total             Float
+  montoBase         Float?
+  montoIgv          Float?
+  estadoGasto       String  @default("Generado")
+  areaResponsable   String
+  comprobanteDevolucionUrl String?
+  fechaDevolucion          String?
+  codigoDevolucion         String?
+  esGastoAdicional         Boolean? @default(false)
+  motivoAdicional          String?
+
+  cliente  Cliente  @relation(fields: [clienteId], references: [id])
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id])
+  quote    Quote    @relation(fields: [quoteId], references: [id])
+
+  items GastoProduccionItem[]
+}
+
+model GastoProduccionItem {
+  id             String @id @default(uuid())
+  gastoId        String
+  quoteSubItemId String
+  name           String
+  costPercentage Float
+  monto          Float
+
+  gasto GastoProduccion @relation(fields: [gastoId], references: [id], onDelete: Cascade)
+}
+
+model QuoteHistory {
+  id        String   @id @default(uuid())
+  quoteId   String
+  userName  String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String   @default("Producción") // Admin, Producción, Cuentas, Directorio
+  smtpHost  String?
+  smtpPort  Int?
+  smtpUser  String?
+  smtpPass  String?
+  createdAt DateTime @default(now())
+}
+
+model ActividadCalendario {
+  id          String   @id @default(uuid())
+  titulo      String
+  descripcion String?
+  fecha       String
+  fechaFin    String?
+  hora        String?
+  color       String   @default("#8A2BE2")
+  createdAt   DateTime @default(now())
+}
+
+model TeamworkTask {
+  id           String   @id @default(uuid())
+  area         String
+  cliente      String
+  proyecto     String
+  tarea        String
+  responsable  String
+  fechaEntrega String
+  status       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model FacturaCliente {
+  id                   String   @id @default(uuid())
+  proyectoId           String
+  tipoOrden            String   // 'OC' o 'OS'
+  numeroOrden          String
+  fechaGeneracionOrden String
+  condicionPago        String
+  numeroFactura        String
+  fechaEmision         String
+  diasPago             Int
+  montoSinIgv          Float
+  igv                  Float    // 18% del montoSinIgv
+  montoConIgv          Float    // montoSinIgv + igv
+  aplicaDetraccion     Boolean  @default(false)
+  aplicaRetencion      Boolean  @default(false)
+  importeRecibido      Float    @default(0)
+  fechaPago            String?
+  pagoImpuestos        Boolean  @default(false) // Si se pagó la detracción/retención
+  estado               String   @default("Pendiente") // Pendiente, Pagado Parcial, Pagado
+  comprobanteUrl       String?  // PDF o comprobante de la factura emitida al cliente
+  comprobantePagoUrl   String?  // Voucher o constancia de pago/cobranza del cliente
+  porcentajeFacturacion Float?  @default(100) // % facturado del subtotal del proyecto (ej: 50, 100, etc.)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+
+  @@index([proyectoId])
+  @@index([estado])
+}
+
+model ReunionAsistente {
+  id              String   @id @default(uuid())
+  titulo          String
+  fecha           DateTime @default(now())
+  duracionSegundos Int?     @default(0)
+  tipoServicio    String?
+  tipoProyecto    String?
+  clienteId       String?
+  proyectoId      String?
+  estado          String   @default("EN_PROCESO") // EN_PROCESO, FINALIZADA, PROCESADA
+  
+  transcripcion   String?  @db.Text
+  briefJson       String?  @db.Text
+  preguntasJson   String?  @db.Text
+  entregableJson  String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clienteId])
+  @@index([proyectoId])
+}
+
+
+model ProjectBook {
+  id                 String      @id @default(uuid())
+  proyectoId         String
+  proyecto           Proyecto    @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  nombre             String      @default("Versión 1")
+  tipoPresentacion   String      @default("book") // "book" | "reporte"
+  clienteNombre      String?
+  requerimiento      String?
+  fechaActivacion    String?
+  clientLogoUrl      String?
+  includeCover       Boolean     @default(true)
+  includeGeneralData Boolean     @default(true)
+  includeClosing     Boolean     @default(true)
+  shareToken         String      @unique @default(uuid())
+  slides             BookSlide[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([proyectoId])
+}
+
+model BookSlide {
+  id        String      @id @default(uuid())
+  bookId    String
+  book      ProjectBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  tipo      String      @default("item") // "section" | "item"
+  titulo    String
+  subtitulo String?
+  itemsJson String      @default("[]") @db.Text
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([bookId])
+}
