@@ -5077,13 +5077,13 @@ Instrucciones Clave:
 // --- GOOGLE WORKSPACE AUTH & CALENDAR ENDPOINTS ---
 
 const resolveGoogleRedirectUri = (req: any, fallbackFrontend?: string): string => {
-  if (req.query?.redirectUri) return req.query.redirectUri as string;
-  const frontend = (req.query?.frontendUrl as string) || fallbackFrontend || process.env.FRONTEND_URL || '';
+  if (req.query?.redirectUri) return (req.query.redirectUri as string).trim();
+  const frontend = ((req.query?.frontendUrl as string) || fallbackFrontend || process.env.FRONTEND_URL || '').trim();
   if (frontend.includes('localhost') || frontend.includes('127.0.0.1')) {
     return 'http://localhost:52823/api/auth/google/callback';
   }
-  if (process.env.GOOGLE_REDIRECT_URI) {
-    return process.env.GOOGLE_REDIRECT_URI;
+  if (process.env.GOOGLE_REDIRECT_URI && process.env.GOOGLE_REDIRECT_URI.trim()) {
+    return process.env.GOOGLE_REDIRECT_URI.trim();
   }
   const host = req.headers?.['x-forwarded-host'] || req.headers?.host || '';
   const proto = req.headers?.['x-forwarded-proto'] || (req.secure ? 'https' : 'http');

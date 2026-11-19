@@ -69,17 +69,17 @@ export const GastosProduccionView: React.FC = () => {
     const proyectoName = getProyectoName(g.proyectoId || (g as any).proyecto?.id).toLowerCase();
     const idLower = String(g.id || '').toLowerCase();
     const resp = String(g.areaResponsable || '').toLowerCase();
-    
-    if (searchLower && 
-        !clienteName.includes(searchLower) &&
-        !proyectoName.includes(searchLower) &&
-        !idLower.includes(searchLower) &&
-        !resp.includes(searchLower)) return false;
-        
+
+    if (searchLower &&
+      !clienteName.includes(searchLower) &&
+      !proyectoName.includes(searchLower) &&
+      !idLower.includes(searchLower) &&
+      !resp.includes(searchLower)) return false;
+
     const isDevuelto = g.estadoGasto === 'Devuelto' || g.estadoGasto === 'Reembolsado' || g.estadoGasto === 'Pagado';
     if (activeTab === 'pendientes' && isDevuelto) return false;
     if (activeTab === 'devueltos' && !isDevuelto) return false;
-    
+
     return true;
   });
 
@@ -133,183 +133,183 @@ export const GastosProduccionView: React.FC = () => {
 
   const renderGastoItemRow = (gasto: GastoProduccion, isFlat: boolean = false) => {
 
-                            if (!gasto || !gasto.id) return null;
-                            const isGastoExpanded = expandedGastos[gasto.id] === true;
-                            const isDevuelto = gasto.estadoGasto === 'Devuelto' || gasto.estadoGasto === 'Reembolsado' || gasto.estadoGasto === 'Pagado';
+    if (!gasto || !gasto.id) return null;
+    const isGastoExpanded = expandedGastos[gasto.id] === true;
+    const isDevuelto = gasto.estadoGasto === 'Devuelto' || gasto.estadoGasto === 'Reembolsado' || gasto.estadoGasto === 'Pagado';
 
-                            return (
-                            <React.Fragment key={gasto.id}>
-                              <tr 
-                                className="expandable-row" 
-                                style={{ cursor: 'pointer', backgroundColor: isGastoExpanded ? 'rgba(0,0,0,0.01)' : 'transparent' }}
-                                onClick={() => toggleGasto(gasto.id)}
-                              >
-                                {canManageReembolso && (
-                                  <td className="td-custom" style={{ position: 'sticky', left: 0, zIndex: 10, backgroundColor: 'inherit', textAlign: 'center', width: '45px' }} onClick={(e) => e.stopPropagation()}>
-                                    {!isDevuelto ? (
-                                      <input 
-                                        type="checkbox" 
-                                        checked={selectedGastoIds.includes(gasto.id)} 
-                                        onChange={() => toggleSelectGasto(gasto.id)}
-                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                                      />
-                                    ) : (
-                                      <span style={{ color: 'var(--success)', fontSize: '12px' }}>✓</span>
-                                    )}
-                                  </td>
-                                )}
-                                <td className="td-custom" style={{ position: 'sticky', left: canManageReembolso ? '45px' : 0, zIndex: 10, backgroundColor: 'inherit', fontWeight: 600, color: 'var(--accent-primary)', paddingLeft: '16px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {isGastoExpanded ? <ChevronDown size={14} color="var(--text-muted)" /> : <ChevronRight size={14} color="var(--text-muted)" />}
-                                    <Receipt size={16} />
-                                    {String(gasto.id || '').substring(0,8)}...
-                                  </div>
-                                </td>
-                                {isFlat && (
-                                  <>
-                                    <td className="td-custom" style={{ verticalAlign: 'middle' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Building2 size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                                        <span style={{ fontWeight: 600 }}>{getClienteName(gasto.clienteId || (gasto as any).cliente?.id)}</span>
-                                      </div>
-                                    </td>
-                                    <td className="td-custom" style={{ verticalAlign: 'middle' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Briefcase size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                                        <span>{getProyectoName(gasto.proyectoId || (gasto as any).proyecto?.id)}</span>
-                                      </div>
-                                    </td>
-                                  </>
-                                )}
-                                <td className="td-custom">
-                                  <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <span style={{ fontWeight: 'bold' }}>{gasto.tipoComprobante || 'Boleta'}</span>
-                                      {gasto.esGastoAdicional && (
-                                        <span 
-                                          style={{ 
-                                            backgroundColor: '#fef3c7', 
-                                            color: '#b45309', 
-                                            border: '1px solid #f59e0b', 
-                                            fontSize: '10px', 
-                                            padding: '1px 6px', 
-                                            borderRadius: '8px', 
-                                            fontWeight: 700
-                                          }}
-                                          title={gasto.motivoAdicional ? `Gasto Adicional: ${gasto.motivoAdicional}` : 'Gasto Adicional / Fuera de presupuesto'}
-                                        >
-                                          ⚡ Adicional
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                      {gasto.numeroComprobante || '-'}
-                                      {gasto.motivoAdicional && <span style={{ marginLeft: '4px', fontStyle: 'italic', color: '#b45309' }}>• {gasto.motivoAdicional}</span>}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="td-custom">{gasto.fechaEmision || '-'}</td>
-                                <td className="td-custom" style={{ fontWeight: 500 }}>{gasto.areaResponsable || '-'}</td>
-                                <td className="td-custom">
-                                  {canManageReembolso ? (
-                                    <select
-                                      value={isDevuelto ? 'Devuelto' : 'Pendiente'}
-                                      onChange={async (e) => {
-                                        e.stopPropagation();
-                                        await updateGastoProduccion(gasto.id, { ...gasto, estadoGasto: e.target.value } as any);
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className={`badge ${getBadgeClass(gasto.estadoGasto || 'Pendiente')}`}
-                                      style={{ background: 'transparent', border: '1px solid var(--border-color)', outline: 'none', cursor: 'pointer', fontWeight: 600 }}
-                                    >
-                                      <option value="Pendiente" style={{ color: 'black' }}>Pendiente</option>
-                                      <option value="Devuelto" style={{ color: 'black' }}>Devuelto</option>
-                                    </select>
-                                  ) : (
-                                    <span className={`badge ${getBadgeClass(gasto.estadoGasto || 'Pendiente')}`}>
-                                      {isDevuelto ? 'Devuelto' : 'Pendiente'}
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="td-custom font-bold text-emerald font-tabular">S/ {Number(gasto.total || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td className="td-custom sticky-col-right" style={{ position: 'sticky', right: 0, zIndex: 10, backgroundColor: 'inherit', textAlign: 'center' }}>
-                                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                    <button className="btn-icon" onClick={(e) => {
-                                      e.stopPropagation();
-                                      setGastoToEdit(gasto);
-                                      setIsModalOpen(true);
-                                    }} title="Editar" style={{ color: 'var(--accent-primary)' }}>
-                                      <Edit size={16} />
-                                    </button>
-                                    {gasto.comprobanteUrl && (
-                                      <button className="btn-icon" onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDocumentClick(gasto.comprobanteUrl);
-                                      }} title="Ver Comprobante de Gasto (Boleta/Factura)" style={{ color: 'var(--text-primary)' }}>
-                                        <Eye size={16} />
-                                      </button>
-                                    )}
-                                    {gasto.comprobanteDevolucionUrl && (
-                                      <button className="btn-icon" onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDocumentClick(gasto.comprobanteDevolucionUrl);
-                                      }} title="Ver Voucher de Devolución / Depósito" style={{ color: 'var(--success)' }}>
-                                        <span style={{ fontSize: '15px' }}>🏦</span>
-                                      </button>
-                                    )}
-                                    <button className="btn-icon" onClick={(e) => {
-                                      e.stopPropagation();
-                                      if(window.confirm('¿Borrar este gasto permanentemente?')) deleteGastoProduccion(gasto.id);
-                                    }} title="Eliminar" style={{ color: 'var(--danger)' }}>
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                              {isGastoExpanded && (
-                                <tr style={{ backgroundColor: '#fafafa' }}>
-                                  <td colSpan={canManageReembolso ? (isFlat ? 10 : 8) : (isFlat ? 9 : 7)} style={{ padding: '16px 16px 16px 72px' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: 'var(--text-secondary)' }}>ÍTEMS AFECTADOS</div>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                                      <thead>
-                                        <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-                                          <th style={{ padding: '8px', textAlign: 'left', color: 'var(--text-muted)' }}>ÍTEM COTIZADO</th>
-                                          <th style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)' }}>% DEL COSTO</th>
-                                          <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-muted)' }}>MONTO ASIGNADO</th>
-                                        </tr>
-                                      </thead>
-                                       <tbody>
-                                         {gasto.items && gasto.items.length > 0 ? gasto.items.map((it: any) => {
-                                           const parts = String(it.name || '').split(' — ');
-                                           const itemName = parts[0] || it.name || '-';
-                                           const itemDetail = it.customDescription || (parts.length > 1 ? parts.slice(1).join(' — ') : null);
+    return (
+      <React.Fragment key={gasto.id}>
+        <tr
+          className="expandable-row"
+          style={{ cursor: 'pointer', backgroundColor: isGastoExpanded ? 'rgba(0,0,0,0.01)' : 'transparent' }}
+          onClick={() => toggleGasto(gasto.id)}
+        >
+          {canManageReembolso && (
+            <td className="td-custom" style={{ position: 'sticky', left: 0, zIndex: 10, backgroundColor: 'inherit', textAlign: 'center', width: '45px' }} onClick={(e) => e.stopPropagation()}>
+              {!isDevuelto ? (
+                <input
+                  type="checkbox"
+                  checked={selectedGastoIds.includes(gasto.id)}
+                  onChange={() => toggleSelectGasto(gasto.id)}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+              ) : (
+                <span style={{ color: 'var(--success)', fontSize: '12px' }}>✓</span>
+              )}
+            </td>
+          )}
+          <td className="td-custom" style={{ position: 'sticky', left: canManageReembolso ? '45px' : 0, zIndex: 10, backgroundColor: 'inherit', fontWeight: 600, color: 'var(--accent-primary)', paddingLeft: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isGastoExpanded ? <ChevronDown size={14} color="var(--text-muted)" /> : <ChevronRight size={14} color="var(--text-muted)" />}
+              <Receipt size={16} />
+              {String(gasto.id || '').substring(0, 8)}...
+            </div>
+          </td>
+          {isFlat && (
+            <>
+              <td className="td-custom" style={{ verticalAlign: 'middle' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building2 size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600 }}>{getClienteName(gasto.clienteId || (gasto as any).cliente?.id)}</span>
+                </div>
+              </td>
+              <td className="td-custom" style={{ verticalAlign: 'middle' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Briefcase size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <span>{getProyectoName(gasto.proyectoId || (gasto as any).proyecto?.id)}</span>
+                </div>
+              </td>
+            </>
+          )}
+          <td className="td-custom">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontWeight: 'bold' }}>{gasto.tipoComprobante || 'Boleta'}</span>
+                {gasto.esGastoAdicional && (
+                  <span
+                    style={{
+                      backgroundColor: '#fef3c7',
+                      color: '#b45309',
+                      border: '1px solid #f59e0b',
+                      fontSize: '10px',
+                      padding: '1px 6px',
+                      borderRadius: '8px',
+                      fontWeight: 700
+                    }}
+                    title={gasto.motivoAdicional ? `Gasto Adicional: ${gasto.motivoAdicional}` : 'Gasto Adicional / Fuera de presupuesto'}
+                  >
+                    ⚡ Adicional
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                {gasto.numeroComprobante || '-'}
+                {gasto.motivoAdicional && <span style={{ marginLeft: '4px', fontStyle: 'italic', color: '#b45309' }}>• {gasto.motivoAdicional}</span>}
+              </div>
+            </div>
+          </td>
+          <td className="td-custom">{gasto.fechaEmision || '-'}</td>
+          <td className="td-custom" style={{ fontWeight: 500 }}>{gasto.areaResponsable || '-'}</td>
+          <td className="td-custom">
+            {canManageReembolso ? (
+              <select
+                value={isDevuelto ? 'Devuelto' : 'Pendiente'}
+                onChange={async (e) => {
+                  e.stopPropagation();
+                  await updateGastoProduccion(gasto.id, { ...gasto, estadoGasto: e.target.value } as any);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className={`badge ${getBadgeClass(gasto.estadoGasto || 'Pendiente')}`}
+                style={{ background: 'transparent', border: '1px solid var(--border-color)', outline: 'none', cursor: 'pointer', fontWeight: 600 }}
+              >
+                <option value="Pendiente" style={{ color: 'black' }}>Pendiente</option>
+                <option value="Devuelto" style={{ color: 'black' }}>Devuelto</option>
+              </select>
+            ) : (
+              <span className={`badge ${getBadgeClass(gasto.estadoGasto || 'Pendiente')}`}>
+                {isDevuelto ? 'Devuelto' : 'Pendiente'}
+              </span>
+            )}
+          </td>
+          <td className="td-custom font-bold text-emerald font-tabular">S/ {Number(gasto.total || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td className="td-custom sticky-col-right" style={{ position: 'sticky', right: 0, zIndex: 10, backgroundColor: 'inherit', textAlign: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button className="btn-icon" onClick={(e) => {
+                e.stopPropagation();
+                setGastoToEdit(gasto);
+                setIsModalOpen(true);
+              }} title="Editar" style={{ color: 'var(--accent-primary)' }}>
+                <Edit size={16} />
+              </button>
+              {gasto.comprobanteUrl && (
+                <button className="btn-icon" onClick={(e) => {
+                  e.stopPropagation();
+                  handleDocumentClick(gasto.comprobanteUrl);
+                }} title="Ver Comprobante de Gasto (Boleta/Factura)" style={{ color: 'var(--text-primary)' }}>
+                  <Eye size={16} />
+                </button>
+              )}
+              {gasto.comprobanteDevolucionUrl && (
+                <button className="btn-icon" onClick={(e) => {
+                  e.stopPropagation();
+                  handleDocumentClick(gasto.comprobanteDevolucionUrl);
+                }} title="Ver Voucher de Devolución / Depósito" style={{ color: 'var(--success)' }}>
+                  <span style={{ fontSize: '15px' }}>🏦</span>
+                </button>
+              )}
+              <button className="btn-icon" onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm('¿Borrar este gasto permanentemente?')) deleteGastoProduccion(gasto.id);
+              }} title="Eliminar" style={{ color: 'var(--danger)' }}>
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </td>
+        </tr>
+        {isGastoExpanded && (
+          <tr style={{ backgroundColor: '#fafafa' }}>
+            <td colSpan={canManageReembolso ? (isFlat ? 10 : 8) : (isFlat ? 9 : 7)} style={{ padding: '16px 16px 16px 72px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: 'var(--text-secondary)' }}>ÍTEMS AFECTADOS</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+                    <th style={{ padding: '8px', textAlign: 'left', color: 'var(--text-muted)' }}>ÍTEM COTIZADO</th>
+                    <th style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)' }}>% DEL COSTO</th>
+                    <th style={{ padding: '8px', textAlign: 'right', color: 'var(--text-muted)' }}>MONTO ASIGNADO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gasto.items && gasto.items.length > 0 ? gasto.items.map((it: any) => {
+                    const parts = String(it.name || '').split(' — ');
+                    const itemName = parts[0] || it.name || '-';
+                    const itemDetail = it.customDescription || (parts.length > 1 ? parts.slice(1).join(' — ') : null);
 
-                                           return (
-                                             <tr key={it.id || it.name} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                                               <td style={{ padding: '8px', color: 'var(--text-primary)' }}>
-                                                 <div style={{ fontWeight: 500 }}>{itemName}</div>
-                                                 {itemDetail && (
-                                                   <div style={{ marginTop: '3px' }}>
-                                                     <span style={{ fontSize: '11px', background: 'rgba(102, 45, 145, 0.08)', color: 'var(--accent-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, display: 'inline-block' }}>
-                                                       📝 {itemDetail}
-                                                     </span>
-                                                   </div>
-                                                 )}
-                                               </td>
-                                               <td style={{ padding: '8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{it.costPercentage || 0}%</td>
-                                               <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent-primary)' }}>S/ {Number(it.monto || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                             </tr>
-                                           );
-                                         }) : (
-                                           <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)' }}>No hay ítems registrados</td></tr>
-                                         )}
-                                       </tbody>
-                                    </table>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                            );
+                    return (
+                      <tr key={it.id || it.name} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                        <td style={{ padding: '8px', color: 'var(--text-primary)' }}>
+                          <div style={{ fontWeight: 500 }}>{itemName}</div>
+                          {itemDetail && (
+                            <div style={{ marginTop: '3px' }}>
+                              <span style={{ fontSize: '11px', background: 'rgba(102, 45, 145, 0.08)', color: 'var(--accent-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, display: 'inline-block' }}>
+                                📝 {itemDetail}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{it.costPercentage || 0}%</td>
+                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent-primary)' }}>S/ {Number(it.monto || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan={3} style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)' }}>No hay ítems registrados</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        )}
+      </React.Fragment>
+    );
   };
 
   return (
@@ -318,7 +318,7 @@ export const GastosProduccionView: React.FC = () => {
       <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '14px' }}>
         {/* UNIFIED TABS */}
         <div className="unified-tabs" style={{ marginBottom: 0, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button 
+          <button
             className={`unified-tab ${activeTab === 'pendientes' ? 'active' : ''}`}
             onClick={() => setActiveTab('pendientes')}
           >
@@ -329,7 +329,7 @@ export const GastosProduccionView: React.FC = () => {
               </span>
             )}
           </button>
-          <button 
+          <button
             className={`unified-tab ${activeTab === 'devueltos' ? 'active' : ''}`}
             onClick={() => setActiveTab('devueltos')}
           >
@@ -340,7 +340,7 @@ export const GastosProduccionView: React.FC = () => {
               </span>
             )}
           </button>
-          <button 
+          <button
             className={`unified-tab ${activeTab === 'todos' ? 'active' : ''}`}
             onClick={() => setActiveTab('todos')}
           >
@@ -351,27 +351,27 @@ export const GastosProduccionView: React.FC = () => {
 
         {/* VIEW ACTIONS */}
         <div className="view-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button 
-            type="button" 
-            className="btn-secondary" 
+          <button
+            type="button"
+            className="btn-secondary"
             onClick={() => setIsImportModalOpen(true)}
-            style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              background: '#ecfdf5', 
-              border: '1.5px solid #10b981', 
-              color: '#065f46', 
-              fontWeight: 700 
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#ecfdf5',
+              border: '1.5px solid #10b981',
+              color: '#065f46',
+              fontWeight: 700
             }}
             title="Descargar plantilla Excel y cargar gastos con cálculo automático de IGV"
           >
             <FileSpreadsheet size={16} color="#059669" />
             <span>📥 Plantilla / Cargar Excel</span>
           </button>
-          <button 
-            type="button" 
-            className="btn-excel" 
+          <button
+            type="button"
+            className="btn-excel"
             onClick={() => exportGastosToExcel(gastosProduccion, proyectos, clientes)}
             title="Descargar base completa de gastos en Excel (.xlsx)"
           >
@@ -416,12 +416,12 @@ export const GastosProduccionView: React.FC = () => {
           <label className="unified-filter-label">Búsqueda Rápida</label>
           <div className="unified-search-wrapper">
             <Search size={16} className="unified-search-icon" />
-            <input 
-              type="text" 
-              placeholder="Buscar por ID, Cliente, Proyecto o Responsable..." 
+            <input
+              type="text"
+              placeholder="Buscar por ID, Cliente, Proyecto o Responsable..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="unified-search-input" 
+              className="unified-search-input"
             />
           </div>
         </div>
@@ -554,15 +554,15 @@ export const GastosProduccionView: React.FC = () => {
           </div>
         </div>
 
-        <div 
-          ref={tableContainerRef} 
-          className="custom-table-scroll" 
-          style={{ 
-            maxHeight: 'calc(100vh - 280px)', 
-            minHeight: '400px', 
-            overflowX: 'auto', 
-            overflowY: 'auto', 
-            position: 'relative' 
+        <div
+          ref={tableContainerRef}
+          className="custom-table-scroll"
+          style={{
+            maxHeight: 'calc(100vh - 280px)',
+            minHeight: '400px',
+            overflowX: 'auto',
+            overflowY: 'auto',
+            position: 'relative'
           }}
         >
           {isLoading ? (
@@ -668,119 +668,119 @@ export const GastosProduccionView: React.FC = () => {
           ) : (
             <table className="data-table" style={{ width: '100%', minWidth: viewMode === 'flat' ? (canManageReembolso ? '1490px' : '1440px') : (canManageReembolso ? '1220px' : '1180px'), tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
               {viewMode === 'flat' ? (
-              <colgroup>
-                {canManageReembolso && <col style={{ width: '45px' }} />}
-                <col style={{ width: '140px' }} />
-                <col style={{ width: '200px' }} />
-                <col style={{ width: '200px' }} />
-                <col style={{ width: '200px' }} />
-                <col style={{ width: '120px' }} />
-                <col style={{ width: '180px' }} />
-                <col style={{ width: '140px' }} />
-                <col style={{ width: '140px' }} />
-                <col style={{ width: '130px' }} />
-              </colgroup>
-            ) : (
-              <colgroup>
-                {canManageReembolso && <col style={{ width: '45px' }} />}
-                <col style={{ width: '150px' }} />
-                <col style={{ width: '220px' }} />
-                <col style={{ width: '120px' }} />
-                <col style={{ width: '190px' }} />
-                <col style={{ width: '140px' }} />
-                <col style={{ width: '140px' }} />
-                <col style={{ width: '130px' }} />
-              </colgroup>
-            )}
-            <thead style={{ position: 'sticky', top: 0, zIndex: 12, backgroundColor: '#f8fafc' }}>
-              {viewMode === 'flat' ? (
-                <tr>
-                  {canManageReembolso && <th className="header-custom" style={{ position: 'sticky', left: 0, zIndex: 16, backgroundColor: '#f8fafc', width: '45px', textAlign: 'center' }}>SEL</th>}
-                  <th className="header-custom" style={{ position: 'sticky', left: canManageReembolso ? '45px' : 0, zIndex: 16, backgroundColor: '#f8fafc', width: '140px' }}>ID GASTO</th>
-                  <th className="header-custom">CLIENTE</th>
-                  <th className="header-custom">PROYECTO</th>
-                  <th className="header-custom">TIPO COMPROBANTE</th>
-                  <th className="header-custom">FECHA</th>
-                  <th className="header-custom">A QUIÉN SE DEVUELVE</th>
-                  <th className="header-custom">ESTADO</th>
-                  <th className="header-custom">TOTAL</th>
-                  <th className="header-custom sticky-col-right" style={{ position: 'sticky', right: 0, zIndex: 16, backgroundColor: '#f8fafc', textAlign: 'center', width: '130px' }}>ACCIONES</th>
-                </tr>
+                <colgroup>
+                  {canManageReembolso && <col style={{ width: '45px' }} />}
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '200px' }} />
+                  <col style={{ width: '200px' }} />
+                  <col style={{ width: '200px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '180px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '130px' }} />
+                </colgroup>
               ) : (
-                <tr>
-                  {canManageReembolso && <th className="header-custom" style={{ position: 'sticky', left: 0, zIndex: 16, backgroundColor: '#f8fafc', width: '45px', textAlign: 'center' }}>SEL</th>}
-                  <th className="header-custom" style={{ position: 'sticky', left: canManageReembolso ? '45px' : 0, zIndex: 16, backgroundColor: '#f8fafc', width: '150px' }}>ID GASTO</th>
-                  <th className="header-custom">TIPO COMPROBANTE</th>
-                  <th className="header-custom">FECHA</th>
-                  <th className="header-custom">A QUIÉN SE DEVUELVE</th>
-                  <th className="header-custom">ESTADO</th>
-                  <th className="header-custom">TOTAL</th>
-                  <th className="header-custom sticky-col-right" style={{ position: 'sticky', right: 0, zIndex: 16, backgroundColor: '#f8fafc', textAlign: 'center', width: '130px' }}>ACCIONES</th>
-                </tr>
+                <colgroup>
+                  {canManageReembolso && <col style={{ width: '45px' }} />}
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: '220px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '190px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '140px' }} />
+                  <col style={{ width: '130px' }} />
+                </colgroup>
               )}
-            </thead>
-            <tbody>
-              {filteredGastos.length === 0 ? (
-                <tr>
-                  <td colSpan={canManageReembolso ? (viewMode === 'flat' ? 10 : 8) : (viewMode === 'flat' ? 9 : 7)} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
-                    <Receipt size={36} color="var(--text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No se encontraron gastos que coincidan con la búsqueda o filtro.</p>
-                    {searchTerm && (
-                      <button type="button" className="btn-secondary" onClick={() => setSearchTerm('')} style={{ margin: '12px auto 0', fontSize: '12px' }}>
-                        Restablecer Filtros
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ) : viewMode === 'flat' ? (
-                paginatedGastos.map(gasto => renderGastoItemRow(gasto, true))
-              ) : (
-                Object.keys(groupedGastos).map(clienteId => {
-                  const clientProjects = groupedGastos[clienteId];
-                  const isClientExpanded = expandedClients[clienteId] === true;
+              <thead style={{ position: 'sticky', top: 0, zIndex: 12, backgroundColor: '#f8fafc' }}>
+                {viewMode === 'flat' ? (
+                  <tr>
+                    {canManageReembolso && <th className="header-custom" style={{ position: 'sticky', left: 0, zIndex: 16, backgroundColor: '#f8fafc', width: '45px', textAlign: 'center' }}>SEL</th>}
+                    <th className="header-custom" style={{ position: 'sticky', left: canManageReembolso ? '45px' : 0, zIndex: 16, backgroundColor: '#f8fafc', width: '140px' }}>ID GASTO</th>
+                    <th className="header-custom">CLIENTE</th>
+                    <th className="header-custom">PROYECTO</th>
+                    <th className="header-custom">TIPO COMPROBANTE</th>
+                    <th className="header-custom">FECHA</th>
+                    <th className="header-custom">A QUIÉN SE DEVUELVE</th>
+                    <th className="header-custom">ESTADO</th>
+                    <th className="header-custom">TOTAL</th>
+                    <th className="header-custom sticky-col-right" style={{ position: 'sticky', right: 0, zIndex: 16, backgroundColor: '#f8fafc', textAlign: 'center', width: '130px' }}>ACCIONES</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    {canManageReembolso && <th className="header-custom" style={{ position: 'sticky', left: 0, zIndex: 16, backgroundColor: '#f8fafc', width: '45px', textAlign: 'center' }}>SEL</th>}
+                    <th className="header-custom" style={{ position: 'sticky', left: canManageReembolso ? '45px' : 0, zIndex: 16, backgroundColor: '#f8fafc', width: '150px' }}>ID GASTO</th>
+                    <th className="header-custom">TIPO COMPROBANTE</th>
+                    <th className="header-custom">FECHA</th>
+                    <th className="header-custom">A QUIÉN SE DEVUELVE</th>
+                    <th className="header-custom">ESTADO</th>
+                    <th className="header-custom">TOTAL</th>
+                    <th className="header-custom sticky-col-right" style={{ position: 'sticky', right: 0, zIndex: 16, backgroundColor: '#f8fafc', textAlign: 'center', width: '130px' }}>ACCIONES</th>
+                  </tr>
+                )}
+              </thead>
+              <tbody>
+                {filteredGastos.length === 0 ? (
+                  <tr>
+                    <td colSpan={canManageReembolso ? (viewMode === 'flat' ? 10 : 8) : (viewMode === 'flat' ? 9 : 7)} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-muted)' }}>
+                      <Receipt size={36} color="var(--text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No se encontraron gastos que coincidan con la búsqueda o filtro.</p>
+                      {searchTerm && (
+                        <button type="button" className="btn-secondary" onClick={() => setSearchTerm('')} style={{ margin: '12px auto 0', fontSize: '12px' }}>
+                          Restablecer Filtros
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ) : viewMode === 'flat' ? (
+                  paginatedGastos.map(gasto => renderGastoItemRow(gasto, true))
+                ) : (
+                  Object.keys(groupedGastos).map(clienteId => {
+                    const clientProjects = groupedGastos[clienteId];
+                    const isClientExpanded = expandedClients[clienteId] === true;
 
-                  return (
-                    <React.Fragment key={clienteId}>
-                      <tr 
-                        style={{ backgroundColor: 'rgba(102, 45, 145, 0.08)', cursor: 'pointer' }}
-                        onClick={() => toggleClient(clienteId)}
-                      >
-                        <td colSpan={canManageReembolso ? 8 : 7} style={{ padding: '12px 16px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {isClientExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                            🏢 CLIENTE: {(getClienteName(clienteId) || 'Desconocido').toUpperCase()}
-                          </div>
-                        </td>
-                      </tr>
-                      
-                      {isClientExpanded && Object.keys(clientProjects).map(proyectoId => {
-                        const projectGastos = clientProjects[proyectoId] || [];
-                        const isProjectExpanded = expandedProjects[proyectoId] === true;
+                    return (
+                      <React.Fragment key={clienteId}>
+                        <tr
+                          style={{ backgroundColor: 'rgba(102, 45, 145, 0.08)', cursor: 'pointer' }}
+                          onClick={() => toggleClient(clienteId)}
+                        >
+                          <td colSpan={canManageReembolso ? 8 : 7} style={{ padding: '12px 16px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {isClientExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                              🏢 CLIENTE: {(getClienteName(clienteId) || 'Desconocido').toUpperCase()}
+                            </div>
+                          </td>
+                        </tr>
 
-                        return (
-                          <React.Fragment key={proyectoId}>
-                            <tr 
-                              style={{ backgroundColor: 'rgba(0, 0, 0, 0.03)', cursor: 'pointer' }}
-                              onClick={() => toggleProject(proyectoId)}
-                            >
-                              <td colSpan={canManageReembolso ? 8 : 7} style={{ padding: '8px 16px 8px 32px', fontWeight: 'bold', fontSize: '13px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  {isProjectExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                  📁 Proyecto: {getProyectoName(proyectoId) || 'Desconocido'}
-                                </div>
-                              </td>
-                            </tr>
-                            
-                            {isProjectExpanded && projectGastos.map(gasto => renderGastoItemRow(gasto, false))}
-                          </React.Fragment>
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        {isClientExpanded && Object.keys(clientProjects).map(proyectoId => {
+                          const projectGastos = clientProjects[proyectoId] || [];
+                          const isProjectExpanded = expandedProjects[proyectoId] === true;
+
+                          return (
+                            <React.Fragment key={proyectoId}>
+                              <tr
+                                style={{ backgroundColor: 'rgba(0, 0, 0, 0.03)', cursor: 'pointer' }}
+                                onClick={() => toggleProject(proyectoId)}
+                              >
+                                <td colSpan={canManageReembolso ? 8 : 7} style={{ padding: '8px 16px 8px 32px', fontWeight: 'bold', fontSize: '13px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {isProjectExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                    📁 Proyecto: {getProyectoName(proyectoId) || 'Desconocido'}
+                                  </div>
+                                </td>
+                              </tr>
+
+                              {isProjectExpanded && projectGastos.map(gasto => renderGastoItemRow(gasto, false))}
+                            </React.Fragment>
+                          );
+                        })}
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           )}
         </div>
 
@@ -847,7 +847,7 @@ export const GastosProduccionView: React.FC = () => {
         )}
       </div>
 
-      <CreateGastoProduccionModal 
+      <CreateGastoProduccionModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

@@ -44,6 +44,9 @@ google-calendar-tokens.json
 *.exe
 upload-credentials.cjs
 deploy*.cjs
+uploads/
+server/uploads/
+**/uploads/
 backups/
 **/backups/
 uploads/SIG_Purple_Backup_*.json

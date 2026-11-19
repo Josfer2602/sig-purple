@@ -20,9 +20,10 @@ export interface CalendarEvent {
 }
 
 export function getOAuth2Client(redirectUri?: string) {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const finalRedirectUri = redirectUri || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:52823/api/auth/google/callback';
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const envRedirect = process.env.GOOGLE_REDIRECT_URI?.trim();
+  const finalRedirectUri = redirectUri?.trim() || envRedirect || 'http://localhost:52823/api/auth/google/callback';
 
   return new google.auth.OAuth2(clientId, clientSecret, finalRedirectUri);
 }
@@ -110,10 +111,11 @@ export function deleteTokens(userEmail?: string) {
 }
 
 export function getCalendarAuthUrl(options?: { frontendUrl?: string; action?: 'login' | 'calendar' | 'drive'; redirectUri?: string }) {
-  const finalRedirectUri = options?.redirectUri || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:52823/api/auth/google/callback';
+  const envRedirect = process.env.GOOGLE_REDIRECT_URI?.trim();
+  const finalRedirectUri = options?.redirectUri?.trim() || envRedirect || 'http://localhost:52823/api/auth/google/callback';
   const oauth2Client = getOAuth2Client(finalRedirectUri);
   const stateObj = {
-    frontendUrl: options?.frontendUrl || 'http://localhost:52824',
+    frontendUrl: options?.frontendUrl?.trim() || 'http://localhost:52824',
     action: options?.action || 'calendar',
     redirectUri: finalRedirectUri
   };
