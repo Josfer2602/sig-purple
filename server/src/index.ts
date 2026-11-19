@@ -5082,7 +5082,15 @@ const resolveGoogleRedirectUri = (req: any, fallbackFrontend?: string): string =
   if (frontend.includes('localhost') || frontend.includes('127.0.0.1')) {
     return 'http://localhost:52823/api/auth/google/callback';
   }
-  return process.env.GOOGLE_REDIRECT_URI || 'https://purple.devlian.de/api/auth/google/callback';
+  if (process.env.GOOGLE_REDIRECT_URI) {
+    return process.env.GOOGLE_REDIRECT_URI;
+  }
+  const host = req.headers?.['x-forwarded-host'] || req.headers?.host || '';
+  const proto = req.headers?.['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+  if (host && host.includes('onrender.com')) {
+    return `${proto}://${host}/api/auth/google/callback`;
+  }
+  return 'https://purple.devlian.de/api/auth/google/callback';
 };
 
 // 0. Obtener URL de inicio de sesión con Google Workspace (@purplebtl.com)

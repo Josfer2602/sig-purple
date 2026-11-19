@@ -13,11 +13,14 @@ import { API_URL, BASE_URL } from '../utils/apiUrl';
 import { exportProveedoresToExcel } from '../utils/excelExport';
 import type { Proveedor, ProveedorDocumento } from '../types/models';
 import { SkeletonTable } from '../components/SkeletonTable';
+import { useIsMobile } from '../hooks/useIsMobile';
 import toast from 'react-hot-toast';
 
 export const ProveedoresView: React.FC = () => {
   const { proveedores, deleteProveedor, updateProveedor, reloadProveedores, token, currentUser, isLoading } = useGlobalContext();
   const currentUserRole = currentUser?.role;
+  const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -532,7 +535,7 @@ export const ProveedoresView: React.FC = () => {
       </div>
 
       {/* Main Table */}
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden', display: (isMobile && mobileDisplayMode === 'cards') ? 'none' : 'block' }}>
         {/* ENCABEZADO CON CONTADOR Y CONTROLES DE DESPLAZAMIENTO */}
         <div style={{
           display: 'flex',
@@ -557,7 +560,28 @@ export const ProveedoresView: React.FC = () => {
             )}
           </div>
 
-          {/* Controles de desplazamiento horizontal de columnas */}
+          {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver proveedores como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver proveedores como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
+
+            {/* Controles de desplazamiento horizontal de columnas */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
             <button
@@ -1391,7 +1415,29 @@ export const ProveedoresView: React.FC = () => {
  
       
       {/* Mobile Adaptive Cards View for Proveedores */}
-      <div className="mobile-cards-container">
+      {isMobile && mobileDisplayMode === 'cards' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+          <div className="mobile-view-switcher">
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('cards')}
+              title="Ver proveedores como tarjetas"
+            >
+              📱 Tarjetas
+            </button>
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('table')}
+              title="Ver proveedores como tabla completa"
+            >
+              📋 Tabla
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="mobile-cards-container" style={{ display: (isMobile && mobileDisplayMode === 'cards') ? 'flex' : 'none' }}>
         {paginatedProveedores.length === 0 ? (
           <div className="glass-panel" style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)' }}>
             <Building size={32} color="var(--text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />

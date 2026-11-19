@@ -17,6 +17,7 @@ import { useGlobalContext } from '../context/GlobalContext';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { SkeletonTable } from '../components/SkeletonTable';
+import { useIsMobile } from '../hooks/useIsMobile';
 import type { Proyecto, Orden } from '../types/models';
 
 interface Props {
@@ -30,6 +31,8 @@ const MESES = [
 
 export const RentabilidadProyectoView: React.FC<Props> = ({ onNavigate }) => {
   const { proyectos, clientes, quotes, ordenes, gastosProduccion, proveedores, isLoading, updateProyecto } = useGlobalContext();
+  const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedServicio, setSelectedServicio] = useState<string>('todos');
@@ -738,7 +741,7 @@ export const RentabilidadProyectoView: React.FC<Props> = ({ onNavigate }) => {
       </div>
 
       {/* THE 16-COLUMN TABLE */}
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px' }}>
         {/* ENCABEZADO CON CONTADOR, SUMATORIA Y DESPLAZAMIENTO */}
         <div style={{
           display: 'flex',
@@ -765,27 +768,53 @@ export const RentabilidadProyectoView: React.FC<Props> = ({ onNavigate }) => {
             )}
           </div>
 
-          {/* BOTONES DESPLAZAMIENTO HORIZONTAL */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
-            <button
-              type="button"
-              onClick={() => handleScrollTable('left')}
-              className="btn-secondary"
-              style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-              title="Desplazar tabla a la izquierda"
-            >
-              <ChevronLeft size={14} /> Izq
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScrollTable('right')}
-              className="btn-secondary"
-              style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-              title="Desplazar tabla a la derecha"
-            >
-              Der <ChevronRight size={14} />
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* SELECTOR MODO MOBILE: TARJETAS VS TABLA */}
+            {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver rentabilidad como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver rentabilidad como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
+
+            {/* BOTONES DESPLAZAMIENTO HORIZONTAL */}
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('left')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la izquierda"
+                >
+                  <ChevronLeft size={14} /> Izq
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('right')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la derecha"
+                >
+                  Der <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -802,6 +831,112 @@ export const RentabilidadProyectoView: React.FC<Props> = ({ onNavigate }) => {
         >
           {isLoading ? (
             <SkeletonTable columns={12} rows={6} message="Calculando métricas de rentabilidad por proyecto..." />
+          ) : (isMobile && mobileDisplayMode === 'cards') ? (
+            <div className="mobile-cards-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', marginBottom: '20px' }}>
+              {paginatedMetrics.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>
+                  <ShoppingCart size={32} color="var(--text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No se encontraron proyectos para evaluar rentabilidad.</p>
+                </div>
+              ) : (
+                paginatedMetrics.map((m) => {
+                  const isProfitPositive = m.margen >= 0;
+
+                  return (
+                    <div 
+                      key={m.proyecto.id} 
+                      className="mobile-data-card"
+                      style={{
+                        borderLeft: isProfitPositive ? '4px solid #10b981' : '4px solid #ef4444'
+                      }}
+                    >
+                      <div className="mobile-data-card-header">
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="mobile-data-card-title font-mono" style={{ color: 'var(--accent-primary)', fontSize: '13px' }}>
+                              {m.proyecto.id}
+                            </span>
+                            <span style={{ fontSize: '10px', background: 'rgba(124, 58, 237, 0.08)', color: 'var(--accent-primary)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                              {m.servicio}
+                            </span>
+                          </div>
+                          <div className="mobile-data-card-subtitle">
+                            <span>{m.fechaAceptacion.formatted || '-'}</span>
+                            {m.moneda && <span>• 🪙 {m.moneda}</span>}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', flexShrink: 0 }}>
+                          <span style={{ fontWeight: 800, fontSize: '15px', color: isProfitPositive ? '#059669' : '#dc2626' }}>
+                            {formatCurrency(m.margen)}
+                          </span>
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '10px', background: isProfitPositive ? '#ecfdf5' : '#fee2e2', color: isProfitPositive ? '#047857' : '#b91c1c' }}>
+                            MD: {m.markDown}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ margin: '4px 0' }}>
+                        <div style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                          {m.actividad}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          🏢 {m.cliente}
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-grid-meta">
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Facturación</span>
+                          <span className="mobile-card-meta-val" style={{ color: '#059669', fontWeight: 700 }}>
+                            {formatCurrency(m.facturacion)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Costo Neto</span>
+                          <span className="mobile-card-meta-val" style={{ color: '#e11d48', fontWeight: 600 }}>
+                            {formatCurrency(m.costoNeto)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Gastos Adic.</span>
+                          <span className="mobile-card-meta-val">
+                            {formatCurrency(m.gastosAdicionales)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Mark Up</span>
+                          <span className="mobile-card-meta-val" style={{ fontWeight: 600 }}>
+                            {m.markUp}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-actions-row">
+                        <button 
+                          type="button" 
+                          className="mobile-action-pill primary" 
+                          onClick={() => setSelectedProjectForDetail(m.proyecto)}
+                          title="Ver desglose detallado de costos"
+                        >
+                          <Receipt size={13} />
+                          <span>Ver Desglose</span>
+                        </button>
+                        <button 
+                          type="button" 
+                          className="mobile-action-pill" 
+                          onClick={() => setSelectedProjectForGastosAdic(m.proyecto)}
+                          title="Gestionar gastos adicionales"
+                        >
+                          <Edit3 size={13} />
+                          <span>Gastos Adic.</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           ) : (
             <table className="data-table" style={{ width: '100%', minWidth: '2040px', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
               <colgroup>

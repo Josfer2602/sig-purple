@@ -2238,12 +2238,71 @@
 }
 
 @media (max-width: 768px) {
-  .desktop-table-container {
+  /* Only hide desktop table if the parent container explicitly has .has-mobile-cards and is NOT toggled to table mode */
+  .has-mobile-cards:not(.show-table) .desktop-table-container {
     display: none !important;
   }
+
+  /* When toggled to table mode, display table with smooth horizontal touch scroll */
+  .has-mobile-cards.show-table .desktop-table-container {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* When toggled to table mode, hide cards */
+  .has-mobile-cards.show-table .mobile-cards-container {
+    display: none !important;
+  }
+
+  /* Default fallback: If NO cards are provided, NEVER hide desktop tables; enable touch scroll */
+  .desktop-table-container {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
   .mobile-cards-container {
     display: flex !important;
   }
+
+  /* Responsive view switcher pills on mobile */
+  .mobile-view-switcher {
+    display: inline-flex !important;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 3px;
+    border-radius: 8px;
+    gap: 2px;
+  }
+
+  .mobile-view-switcher-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+  }
+
+  .mobile-view-switcher-btn.active {
+    background: #ffffff;
+    color: var(--accent-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+}
+
+.mobile-view-switcher {
+  display: none;
 }
 
 .mobile-quote-sticky-footer {

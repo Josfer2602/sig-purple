@@ -195,7 +195,7 @@ export const DashboardView: React.FC = () => {
   );
 
   const renderYearlyTable = (title: string, data: any[]) => (
-    <div className="desktop-table-container glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', background: '#fff', borderRadius: 'var(--radius-md)' }}>
+    <div className="table-responsive-container glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', background: '#fff', borderRadius: 'var(--radius-md)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
         <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', margin: 0, fontWeight: 'bold' }}>{title}</h3>
         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>👉 Desliza horizontalmente para ver todos los meses</span>
@@ -259,7 +259,7 @@ export const DashboardView: React.FC = () => {
   );
 
   const renderMarkDownTable = () => (
-    <div className="desktop-table-container glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', background: '#fff', borderRadius: 'var(--radius-md)' }}>
+    <div className="table-responsive-container glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', background: '#fff', borderRadius: 'var(--radius-md)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
         <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', margin: 0, fontWeight: 'bold' }}>RESUMEN DE MARK DOWN POR AÑO (%)</h3>
         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>👉 Desliza horizontalmente para ver todos los meses</span>

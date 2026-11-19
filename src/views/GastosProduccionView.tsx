@@ -6,6 +6,7 @@ import { ReembolsoGastosModal } from '../components/ReembolsoGastosModal';
 import { ImportGastosProduccionModal } from '../components/ImportGastosProduccionModal';
 import type { GastoProduccion } from '../types/models';
 import { SkeletonTable } from '../components/SkeletonTable';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { exportGastosToExcel } from '../utils/excelExport';
 
 export const GastosProduccionView: React.FC = () => {
@@ -19,6 +20,8 @@ export const GastosProduccionView: React.FC = () => {
   const [expandedGastos, setExpandedGastos] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<'pendientes' | 'devueltos' | 'todos'>('pendientes');
   const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
+  const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
 
   // Table Scroll & Pagination States
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -430,7 +433,7 @@ export const GastosProduccionView: React.FC = () => {
         )}
       </div>
 
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px' }}>
         {/* ENCABEZADO CON CONTADOR, SUMATORIA Y SELECTOR DE VISTA */}
         <div style={{
           display: 'flex',
@@ -453,75 +456,101 @@ export const GastosProduccionView: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {/* BOTONES DESPLAZAMIENTO HORIZONTAL */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('left')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la izquierda"
-              >
-                <ChevronLeft size={14} /> Izq
-              </button>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('right')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la derecha"
-              >
-                Der <ChevronRight size={14} />
-              </button>
-            </div>
+            {/* SELECTOR MODO MOBILE: TARJETAS VS TABLA */}
+            {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver gastos como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver gastos como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
 
-            <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, rgba(0,0,0,0.04))', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('flat')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.82rem',
-                  fontWeight: viewMode === 'flat' ? 700 : 500,
-                  backgroundColor: viewMode === 'flat' ? 'var(--accent-primary)' : 'transparent',
-                  color: viewMode === 'flat' ? '#ffffff' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                title="Vista plana directa (todos los gastos en una sola grilla)"
-              >
-                <List size={14} />
-                <span>Vista Plana</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grouped')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.82rem',
-                  fontWeight: viewMode === 'grouped' ? 700 : 500,
-                  backgroundColor: viewMode === 'grouped' ? 'var(--accent-primary)' : 'transparent',
-                  color: viewMode === 'grouped' ? '#ffffff' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                title="Vista agrupada por cliente y proyecto"
-              >
-                <FolderTree size={14} />
-                <span>Agrupada por Cliente</span>
-              </button>
-            </div>
+            {/* BOTONES DESPLAZAMIENTO HORIZONTAL */}
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('left')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la izquierda"
+                >
+                  <ChevronLeft size={14} /> Izq
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('right')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la derecha"
+                >
+                  Der <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, rgba(0,0,0,0.04))', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('flat')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: viewMode === 'flat' ? 700 : 500,
+                    backgroundColor: viewMode === 'flat' ? 'var(--accent-primary)' : 'transparent',
+                    color: viewMode === 'flat' ? '#ffffff' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Vista plana directa (todos los gastos en una sola grilla)"
+                >
+                  <List size={14} />
+                  <span>Vista Plana</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grouped')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: viewMode === 'grouped' ? 700 : 500,
+                    backgroundColor: viewMode === 'grouped' ? 'var(--accent-primary)' : 'transparent',
+                    color: viewMode === 'grouped' ? '#ffffff' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Vista agrupada por cliente y proyecto"
+                >
+                  <FolderTree size={14} />
+                  <span>Agrupada por Cliente</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -538,6 +567,104 @@ export const GastosProduccionView: React.FC = () => {
         >
           {isLoading ? (
             <SkeletonTable columns={viewMode === 'flat' ? 9 : 8} rows={6} message="Cargando gastos de producción..." />
+          ) : (isMobile && mobileDisplayMode === 'cards') ? (
+            <div className="mobile-cards-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', marginBottom: '20px' }}>
+              {paginatedGastos.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>
+                  <Receipt size={32} color="var(--text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No se encontraron gastos de producción.</p>
+                </div>
+              ) : (
+                paginatedGastos.map(g => {
+                  const projectName = getProjectName(g.proyectoId);
+                  const clientName = getClienteName(g.proyectoId);
+                  const isPEN = !g.moneda || g.moneda === 'PEN';
+                  const symbol = isPEN ? 'S/' : '$';
+
+                  return (
+                    <div key={g.id} className="mobile-data-card">
+                      <div className="mobile-data-card-header">
+                        <div style={{ minWidth: 0 }}>
+                          <div className="mobile-data-card-title font-mono" style={{ color: 'var(--accent-primary)', fontSize: '13px' }}>
+                            {g.id}
+                          </div>
+                          <div className="mobile-data-card-subtitle">
+                            <span>📅 {g.fecha || '-'}</span>
+                            {g.categoria && <span>• 🏷️ {g.categoria}</span>}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', flexShrink: 0 }}>
+                          <span style={{ fontWeight: 800, fontSize: '15px', color: '#059669' }}>
+                            {symbol} {Number(g.monto || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                          <span className={`badge ${g.estadoReembolso === 'Devuelto' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '10px' }}>
+                            {g.estadoReembolso || 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ margin: '4px 0' }}>
+                        <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                          {g.descripcion || 'Sin descripción'}
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-grid-meta">
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Proveedor / Pagado a</span>
+                          <span className="mobile-card-meta-val" title={g.proveedor || ''}>🏪 {g.proveedor || '-'}</span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Proyecto</span>
+                          <span className="mobile-card-meta-val" title={projectName}>📁 {projectName}</span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-actions-row">
+                        <button 
+                          type="button" 
+                          className="mobile-action-pill primary" 
+                          onClick={() => { setGastoToEdit(g); setIsModalOpen(true); }}
+                          title="Editar Gasto"
+                        >
+                          <Edit size={13} />
+                          <span>Editar</span>
+                        </button>
+                        {g.comprobanteUrl && (
+                          <button 
+                            type="button" 
+                            className="mobile-action-pill" 
+                            onClick={() => {
+                              const fullUrl = g.comprobanteUrl.startsWith('http') ? g.comprobanteUrl : `${BASE_URL}${g.comprobanteUrl}`;
+                              window.open(fullUrl, '_blank');
+                            }}
+                            title="Ver Comprobante"
+                            style={{ color: '#06b6d4' }}
+                          >
+                            <Receipt size={13} />
+                            <span>Comprobante</span>
+                          </button>
+                        )}
+                        <button 
+                          type="button" 
+                          className="mobile-action-pill danger" 
+                          onClick={() => {
+                            if (window.confirm('¿Eliminar este gasto de producción permanentemente?')) {
+                              deleteGastoProduccion(g.id);
+                            }
+                          }}
+                          title="Eliminar Gasto"
+                        >
+                          <Trash2 size={13} />
+                          <span>Borrar</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           ) : (
             <table className="data-table" style={{ width: '100%', minWidth: viewMode === 'flat' ? (canManageReembolso ? '1490px' : '1440px') : (canManageReembolso ? '1220px' : '1180px'), tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
               {viewMode === 'flat' ? (

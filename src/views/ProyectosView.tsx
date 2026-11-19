@@ -205,6 +205,7 @@ type SortOrder = 'asc' | 'desc';
 export const ProyectosView: React.FC = () => {
   const { proyectos, clientes, quotes, currentUserRole, isLoading, deleteProyecto, updateProyecto } = useGlobalContext();
   const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
   const [selectedOrdersProyecto, setSelectedOrdersProyecto] = useState<Proyecto | null>(null);
@@ -930,7 +931,7 @@ export const ProyectosView: React.FC = () => {
       </div>
 
       {/* TABLA DE PROYECTOS — ESTRUCTURA UNIFICADA */}
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
         {/* ENCABEZADO CON CONTADOR Y CONTROLES DE DESPLAZAMIENTO */}
         <div style={{
           display: 'flex',
@@ -955,30 +956,54 @@ export const ProyectosView: React.FC = () => {
             )}
           </div>
 
-          {/* Controles de desplazamiento horizontal de columnas */}
-          {!isMobile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('left')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la izquierda"
-              >
-                <ChevronLeft size={14} /> Izq
-              </button>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('right')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la derecha"
-              >
-                Der <ChevronRight size={14} />
-              </button>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Selector de modo para mobile: Tarjetas vs Tabla */}
+            {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver proyectos como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver proyectos como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
+
+            {/* Controles de desplazamiento horizontal de columnas */}
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('left')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la izquierda"
+                >
+                  <ChevronLeft size={14} /> Izq
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('right')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la derecha"
+                >
+                  Der <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* CONTENEDOR SCROLL CON CABECERA PEGAJOSA */}
@@ -996,7 +1021,7 @@ export const ProyectosView: React.FC = () => {
         >
         {isLoading ? (
           <SkeletonTable columns={8} />
-        ) : isMobile ? (
+        ) : (isMobile && mobileDisplayMode === 'cards') ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px' }}>
             {paginatedProyectos.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>

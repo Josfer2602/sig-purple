@@ -6,9 +6,12 @@ import { CreateFacturaModal } from '../components/CreateFacturaModal';
 import { toast } from 'react-hot-toast';
 import type { FacturaCliente } from '../types/models';
 import { exportFacturasToExcel } from '../utils/excelExport';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export const FacturacionView: React.FC = () => {
   const { facturasCliente, proyectos, clientes, updateFacturaCliente, deleteFacturaCliente, reloadFacturasCliente, currentUserRole, isLoading, token } = useGlobalContext();
+  const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'todas' | 'pendientes' | 'vencidas' | 'cobradas'>('todas');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -438,7 +441,7 @@ export const FacturacionView: React.FC = () => {
       </div>
 
       {/* TABLE */}
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden', display: (isMobile && mobileDisplayMode === 'cards') ? 'none' : 'block' }}>
         {/* ENCABEZADO CON CONTADOR Y CONTROLES DE DESPLAZAMIENTO */}
         <div style={{
           display: 'flex',
@@ -458,6 +461,26 @@ export const FacturacionView: React.FC = () => {
             </span>
           </div>
 
+          {isMobile && (
+            <div className="mobile-view-switcher">
+              <button 
+                type="button"
+                className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                onClick={() => setMobileDisplayMode('cards')}
+                title="Ver facturas como tarjetas"
+              >
+                📱 Tarjetas
+              </button>
+              <button 
+                type="button"
+                className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                onClick={() => setMobileDisplayMode('table')}
+                title="Ver facturas como tabla completa"
+              >
+                📋 Tabla
+              </button>
+            </div>
+          )}
           {/* Controles de desplazamiento horizontal de columnas */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
@@ -894,7 +917,29 @@ export const FacturacionView: React.FC = () => {
       </div>
 
       {/* Mobile Adaptive Cards View for Facturas */}
-      <div className="mobile-cards-container">
+      {isMobile && mobileDisplayMode === 'cards' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+          <div className="mobile-view-switcher">
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('cards')}
+              title="Ver facturas como tarjetas"
+            >
+              📱 Tarjetas
+            </button>
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('table')}
+              title="Ver facturas como tabla completa"
+            >
+              📋 Tabla
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="mobile-cards-container" style={{ display: (isMobile && mobileDisplayMode === 'cards') ? 'flex' : 'none' }}>
         {isLoading ? (
           <SkeletonTable rows={4} columns={1} />
         ) : filteredFacturas.length === 0 ? (
@@ -997,6 +1042,57 @@ export const FacturacionView: React.FC = () => {
                     <Trash2 size={13} />
                   </button>
                 </div>
+
+                {editingId === f.id && (
+                  <div className="mobile-card-expanded-box" style={{ marginTop: '10px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
+                      Registro de Cobranza
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Neto esperado: <strong style={{ color: 'var(--accent-primary)' }}>{formatCurrency(getNetoACobrar(f))}</strong>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Neto Recibido (S/)</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        className="form-input" 
+                        style={{ padding: '6px 10px', width: '100%', fontSize: '13px' }} 
+                        placeholder="Monto Recibido" 
+                        value={editImporte || ''} 
+                        onChange={e => setEditImporte(Number(e.target.value))} 
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Fecha de Pago</label>
+                      <input 
+                        type="date" 
+                        className="form-input" 
+                        style={{ padding: '6px 10px', width: '100%', fontSize: '13px' }} 
+                        value={editFechaPago} 
+                        onChange={e => setEditFechaPago(e.target.value)} 
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <button 
+                        type="button" 
+                        className="btn-primary" 
+                        style={{ flex: 1, padding: '8px 12px', fontSize: '12px', justifyContent: 'center' }}
+                        onClick={() => handleSave(f)}
+                      >
+                        <Save size={14} /> Guardar Cobro
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn-secondary" 
+                        style={{ padding: '8px 12px', fontSize: '12px' }}
+                        onClick={() => setEditingId(null)}
+                      >
+                        <X size={14} /> Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })

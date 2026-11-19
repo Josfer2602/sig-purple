@@ -34,6 +34,7 @@ import { CreateOrdenesMasivasModal } from '../components/CreateOrdenesMasivasMod
 import { OrdenDocumentModal } from '../components/OrdenDocumentModal';
 import { SendOrdenesEmailModal } from '../components/SendOrdenesEmailModal';
 import { SkeletonTable } from '../components/SkeletonTable';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { resolveEffectiveDetraccion } from '../utils/ordenPaymentHelper';
 import type { Orden } from '../types/models';
 
@@ -42,6 +43,8 @@ type SortOrder = 'asc' | 'desc';
 
 export const OrdenesView: React.FC = () => {
   const { ordenes, proveedores, clientes, proyectos, deleteOrden, updateOrden, isLoading } = useGlobalContext();
+  const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
   const [uploadingOrdenId, setUploadingOrdenId] = useState<string | null>(null);
   const cotizacionInputRef = useRef<HTMLInputElement>(null);
 
@@ -587,7 +590,7 @@ export const OrdenesView: React.FC = () => {
         )}
       </div>
 
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden', display: (isMobile && mobileDisplayMode === 'cards') ? 'none' : 'block' }}>
         {/* ENCABEZADO CON CONTADOR, SUMATORIA, SELECTOR DE VISTA Y CONTROLES DE DESPLAZAMIENTO */}
         <div style={{
           display: 'flex',
@@ -613,6 +616,27 @@ export const OrdenesView: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver órdenes como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver órdenes como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
+
             {/* Controles de desplazamiento horizontal de columnas */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
@@ -1087,7 +1111,29 @@ export const OrdenesView: React.FC = () => {
       </div>
 
       {/* Mobile Adaptive Cards View for Ordenes */}
-      <div className="mobile-cards-container">
+      {isMobile && mobileDisplayMode === 'cards' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+          <div className="mobile-view-switcher">
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('cards')}
+              title="Ver órdenes como tarjetas"
+            >
+              📱 Tarjetas
+            </button>
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('table')}
+              title="Ver órdenes como tabla completa"
+            >
+              📋 Tabla
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="mobile-cards-container" style={{ display: (isMobile && mobileDisplayMode === 'cards') ? 'flex' : 'none' }}>
         {isLoading ? (
           <SkeletonTable columns={1} rows={4} message="Cargando órdenes..." />
         ) : filteredOrdenes.length === 0 ? (

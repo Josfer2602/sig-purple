@@ -5,9 +5,12 @@ import { toast } from 'react-hot-toast';
 import type { Quote } from '../types/quote';
 import type { Orden, OrdenSubItem, GastoProduccion, GastoProduccionItem } from '../types/models';
 import { SkeletonTable } from '../components/SkeletonTable';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export const LiquidacionesView: React.FC = () => {
   const { quotes, clientes, proyectos, ordenes, pagos, gastosProduccion, proveedores, updateQuote, updateProyecto, isLoading } = useGlobalContext();
+  const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
   const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
   const [sortField, setSortField] = useState<'quote' | 'client' | 'project' | 'status' | 'venta' | 'presupuesto' | 'gasto' | 'pagado'>('quote');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -1286,7 +1289,7 @@ export const LiquidacionesView: React.FC = () => {
         )}
       </div>
 
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
         {/* ENCABEZADO CON CONTADOR, SELECTOR DE VISTA Y CONTROLES DE DESPLAZAMIENTO */}
         <div style={{
           display: 'flex',
@@ -1307,75 +1310,101 @@ export const LiquidacionesView: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-            {/* Controles de desplazamiento horizontal de columnas */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('left')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la izquierda"
-              >
-                <ChevronLeft size={14} /> Izq
-              </button>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('right')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la derecha"
-              >
-                Der <ChevronRight size={14} />
-              </button>
-            </div>
+            {/* SELECTOR MODO MOBILE: TARJETAS VS TABLA */}
+            {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver liquidaciones como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver liquidaciones como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
 
-            <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, rgba(0,0,0,0.04))', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('flat')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.82rem',
-                  fontWeight: viewMode === 'flat' ? 700 : 500,
-                  backgroundColor: viewMode === 'flat' ? 'var(--accent-primary)' : 'transparent',
-                  color: viewMode === 'flat' ? '#ffffff' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                title="Vista plana directa (todas las liquidaciones en una sola grilla)"
-              >
-                <List size={14} />
-                <span>Vista Plana</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grouped')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  fontSize: '0.82rem',
-                  fontWeight: viewMode === 'grouped' ? 700 : 500,
-                  backgroundColor: viewMode === 'grouped' ? 'var(--accent-primary)' : 'transparent',
-                  color: viewMode === 'grouped' ? '#ffffff' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                title="Vista agrupada por cliente y proyecto"
-              >
-                <FolderTree size={14} />
-                <span>Agrupada por Cliente</span>
-              </button>
-            </div>
+            {/* Controles de desplazamiento horizontal de columnas */}
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('left')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la izquierda"
+                >
+                  <ChevronLeft size={14} /> Izq
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('right')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la derecha"
+                >
+                  Der <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, rgba(0,0,0,0.04))', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('flat')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: viewMode === 'flat' ? 700 : 500,
+                    backgroundColor: viewMode === 'flat' ? 'var(--accent-primary)' : 'transparent',
+                    color: viewMode === 'flat' ? '#ffffff' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Vista plana directa (todas las liquidaciones en una sola grilla)"
+                >
+                  <List size={14} />
+                  <span>Vista Plana</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grouped')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: viewMode === 'grouped' ? 700 : 500,
+                    backgroundColor: viewMode === 'grouped' ? 'var(--accent-primary)' : 'transparent',
+                    color: viewMode === 'grouped' ? '#ffffff' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Vista agrupada por cliente y proyecto"
+                >
+                  <FolderTree size={14} />
+                  <span>Agrupada por Cliente</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1394,6 +1423,142 @@ export const LiquidacionesView: React.FC = () => {
         >
           {isLoading ? (
             <SkeletonTable columns={9} rows={6} message="Cargando liquidaciones y márgenes financieros..." />
+          ) : (isMobile && mobileDisplayMode === 'cards') ? (
+            <div className="mobile-cards-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', marginBottom: '20px' }}>
+              {sortedQuotes.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>
+                  <Clock size={32} color="var(--text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No se encontraron liquidaciones con los filtros seleccionados.</p>
+                </div>
+              ) : (
+                sortedQuotes.map(q => {
+                  const metrics = getQuoteTotals(q);
+                  const estado = getEstadoLiquidacion(q, q.projectId);
+                  const isLiquidado = estado === 'Liquidado';
+                  const clientName = q.client || getClienteName(q.projectId || '');
+                  const projectName = getProjectName(q.projectId || '');
+                  const quoteTitle = (q.requirement || projectName || '').trim();
+                  const isExpanded = !!expandedQuotes[q.id];
+
+                  return (
+                    <div 
+                      key={q.id} 
+                      className="mobile-data-card"
+                      style={{
+                        borderLeft: isLiquidado ? '4px solid #10b981' : '4px solid #f59e0b'
+                      }}
+                    >
+                      <div className="mobile-data-card-header">
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="mobile-data-card-title font-mono" style={{ color: 'var(--accent-primary)', fontSize: '13px' }}>
+                              {formatId(q.id)}
+                            </span>
+                            <span style={{ fontSize: '11px', background: 'rgba(0,0,0,0.05)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                              v{q.version || 1}
+                            </span>
+                          </div>
+                          <div className="mobile-data-card-subtitle">
+                            <span>📁 {projectName}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', flexShrink: 0 }}>
+                          <span style={{ fontWeight: 800, fontSize: '15px', color: '#059669' }}>
+                            {formatCurrency(metrics.venta)}
+                          </span>
+                          <span className={`badge ${isLiquidado ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '10px' }}>
+                            {isLiquidado ? '✓ Liquidado' : '⏳ En Proceso'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ margin: '4px 0' }}>
+                        <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                          {quoteTitle}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          🏢 {clientName}
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-grid-meta">
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Gasto Real</span>
+                          <span className="mobile-card-meta-val" style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
+                            {formatCurrency(metrics.gastoReal)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Presupuesto</span>
+                          <span className="mobile-card-meta-val">
+                            {formatCurrency(metrics.gastoProyectado)}
+                          </span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Margen Real</span>
+                          <span className="mobile-card-meta-val" style={{ color: metrics.margenReal >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                            {formatCurrency(metrics.margenReal)} ({metrics.porcentajeMargenReal.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Pagado Total</span>
+                          <span className="mobile-card-meta-val" style={{ color: '#059669', fontWeight: 600 }}>
+                            {formatCurrency(metrics.pagadoTotal)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-actions-row">
+                        <button 
+                          type="button" 
+                          className={`mobile-action-pill ${isExpanded ? 'primary' : ''}`}
+                          onClick={() => toggleQuote(q.id)}
+                          title="Ver Desglose de Gastos y Órdenes"
+                        >
+                          {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                          <span>{isExpanded ? 'Ocultar Desglose' : 'Ver Desglose'}</span>
+                        </button>
+                        <button 
+                          type="button" 
+                          className="mobile-action-pill"
+                          onClick={(e) => handleToggleEstado(q, isLiquidado ? 'En Proceso' : 'Liquidado', e)}
+                          style={{
+                            color: isLiquidado ? '#4b5563' : '#10b981',
+                            background: isLiquidado ? 'rgba(0,0,0,0.05)' : 'rgba(16, 185, 129, 0.08)'
+                          }}
+                        >
+                          <CheckCircle size={13} />
+                          <span>{isLiquidado ? 'Reabrir' : 'Liquidar'}</span>
+                        </button>
+                      </div>
+
+                      {/* Mobile Expanded Desglose Summary */}
+                      {isExpanded && (
+                        <div className="mobile-card-expanded-box">
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
+                            Auditoría Financiera
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                            <span>Diferencia vs Ppto:</span>
+                            <strong style={{ color: (metrics.gastoProyectado - metrics.gastoReal) >= 0 ? '#10b981' : '#ef4444' }}>
+                              {(metrics.gastoProyectado - metrics.gastoReal) >= 0 ? '+' : ''}{formatCurrency(metrics.gastoProyectado - metrics.gastoReal)}
+                            </strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                            <span>% Pagado Proveedores:</span>
+                            <strong>{metrics.gastoReal > 0 ? Math.min(100, Math.round((metrics.pagadoTotal / metrics.gastoReal) * 100)) : 0}%</strong>
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            Categorías: {q.categories.map(c => c.name).join(', ')}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
           ) : (
             <table className="data-table" style={{ width: '100%', minWidth: '1370px', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
               <colgroup>

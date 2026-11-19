@@ -12,6 +12,7 @@ import { OrdenDocumentModal } from '../components/OrdenDocumentModal';
 import { RegularizarComprobanteModal } from '../components/RegularizarComprobanteModal';
 import { ConfirmPagoModal } from '../components/ConfirmPagoModal';
 import { SkeletonTable } from '../components/SkeletonTable';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { exportPagosToExcel } from '../utils/excelExport';
 import { resolveEffectiveDetraccion } from '../utils/ordenPaymentHelper';
 import type { Pago, Orden } from '../types/models';
@@ -22,6 +23,8 @@ type SortOrder = 'asc' | 'desc';
 
 export const PagosView: React.FC = () => {
   const { pagos, proveedores, ordenes, clientes, proyectos, updatePago, deletePago, anularPago, currentUserRole, isLoading } = useGlobalContext();
+  const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
   
   const [viewMode, setViewMode] = useState<'flat' | 'grouped'>('flat');
   const [sortField, setSortField] = useState<SortField>('fechaPago');
@@ -507,7 +510,7 @@ export const PagosView: React.FC = () => {
       </div>
 
       {/* CONTENEDOR PRINCIPAL DE TABLA UNIFICADA */}
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '40px', padding: 0 }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '40px', padding: 0 }}>
         {/* BARRA SUPERIOR DE TABLA CON CONTADORES Y SELECTOR DE VISTA */}
         <div style={{
           display: 'flex',
@@ -533,38 +536,63 @@ export const PagosView: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-            {/* Controles de desplazamiento horizontal de columnas */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('left')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la izquierda"
-              >
-                <ChevronLeft size={14} /> Izq
-              </button>
-              <button
-                type="button"
-                onClick={() => handleScrollTable('right')}
-                className="btn-secondary"
-                style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                title="Desplazar tabla a la derecha"
-              >
-                Der <ChevronRight size={14} />
-              </button>
-            </div>
+            {/* SELECTOR MODO MOBILE: TARJETAS VS TABLA */}
+            {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver pagos como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver pagos como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
 
-            {/* SELECTOR DE VISTA PLANA VS AGRUPADA */}
-            <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, rgba(0,0,0,0.04))', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('flat')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
+            {/* Controles de desplazamiento horizontal de columnas */}
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('left')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la izquierda"
+                >
+                  <ChevronLeft size={14} /> Izq
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleScrollTable('right')}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', height: '28px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                  title="Desplazar tabla a la derecha"
+                >
+                  Der <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* SELECTOR DE VISTA PLANA VS AGRUPADA (SOLO DESKTOP O MODO TABLA) */}
+            {(!isMobile || mobileDisplayMode === 'table') && (
+              <div style={{ display: 'inline-flex', backgroundColor: 'var(--bg-subtle, rgba(0,0,0,0.04))', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('flat')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   padding: '6px 14px',
                   borderRadius: '6px',
                   fontSize: '0.82rem',
@@ -603,6 +631,7 @@ export const PagosView: React.FC = () => {
                 <span>Agrupada por Cliente</span>
               </button>
             </div>
+            )}
           </div>
         </div>
 
@@ -621,6 +650,156 @@ export const PagosView: React.FC = () => {
         >
           {isLoading ? (
             <SkeletonTable columns={9} rows={6} message="Cargando pagos y tesorería..." />
+          ) : (isMobile && mobileDisplayMode === 'cards') ? (
+            <div className="mobile-cards-container" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', marginBottom: '20px' }}>
+              {paginatedPagos.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 16px', color: 'var(--text-muted)' }}>
+                  <CreditCard size={32} color="var(--text-muted)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: 500 }}>No se encontraron pagos con los filtros seleccionados.</p>
+                </div>
+              ) : (
+                paginatedPagos.map(pago => {
+                  const proveedorName = getProveedorName(pago.proveedorId);
+                  const isSelected = selectedPagos.includes(pago.id);
+                  const compPendiente = isComprobantePendiente(pago);
+
+                  return (
+                    <div 
+                      key={pago.id} 
+                      className="mobile-data-card"
+                      style={{
+                        borderLeft: isSelected ? '4px solid var(--accent-primary)' : undefined,
+                        background: isSelected ? 'rgba(124, 58, 237, 0.03)' : undefined
+                      }}
+                    >
+                      <div className="mobile-data-card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectPago(pago.id)}
+                            style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#7c3aed', flexShrink: 0 }}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <div className="mobile-data-card-title font-mono" style={{ color: 'var(--accent-primary)', fontSize: '13px' }}>
+                              {formatId(pago.id)}
+                            </div>
+                            <div className="mobile-data-card-subtitle">
+                              <span>📅 Prog: {pago.fechaPago || '-'}</span>
+                              {pago.ordenId && <span>• 📦 {pago.ordenId}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', flexShrink: 0 }}>
+                          <span style={{ fontWeight: 800, fontSize: '15px', color: '#059669' }}>
+                            {formatCurrency(pago.monto)}
+                          </span>
+                          <span className={`badge ${getBadgeClass(pago.estado)}`} style={{ fontSize: '10px' }}>
+                            {pago.estado}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-grid-meta">
+                        <div className="mobile-card-meta-col" style={{ gridColumn: 'span 2' }}>
+                          <span className="mobile-card-meta-label">Proveedor</span>
+                          <span className="mobile-card-meta-val" title={proveedorName}>🏪 {proveedorName}</span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Tipo Pago</span>
+                          <span className="mobile-card-meta-val">{pago.tipoPago || 'Transferencia'}</span>
+                        </div>
+                        <div className="mobile-card-meta-col">
+                          <span className="mobile-card-meta-label">Comprobante</span>
+                          <span className="mobile-card-meta-val">
+                            {pago.numeroComprobante || (pago.comprobanteUrl ? 'Adjunto' : 'Pendiente')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mobile-card-actions-row">
+                        <button 
+                          type="button" 
+                          className="mobile-action-pill primary" 
+                          onClick={() => setPagoToView(pago)}
+                          title="Ver detalle del pago"
+                        >
+                          <Eye size={13} />
+                          <span>Ver</span>
+                        </button>
+                        {pago.comprobanteUrl && (
+                          <button 
+                            type="button" 
+                            className="mobile-action-pill" 
+                            onClick={() => {
+                              const url = pago.comprobanteUrl!;
+                              const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
+                              window.open(fullUrl, '_blank');
+                            }}
+                            title="Ver Factura"
+                            style={{ color: '#06b6d4' }}
+                          >
+                            <Receipt size={13} />
+                            <span>Factura</span>
+                          </button>
+                        )}
+                        {pago.comprobanteDeposito && (
+                          <button 
+                            type="button" 
+                            className="mobile-action-pill" 
+                            onClick={() => {
+                              const url = pago.comprobanteDeposito!;
+                              const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
+                              window.open(fullUrl, '_blank');
+                            }}
+                            title="Ver Voucher Bancario"
+                            style={{ color: 'var(--success)' }}
+                          >
+                            <span>🏦 Voucher</span>
+                          </button>
+                        )}
+                        {pago.estado !== 'Anulado' && (
+                          <button 
+                            type="button" 
+                            className="mobile-action-pill" 
+                            onClick={() => setPagoToRegularize(pago)}
+                            title="Subir o regularizar factura"
+                            style={{ color: compPendiente ? '#b45309' : '#8b5cf6' }}
+                          >
+                            <UploadCloud size={13} />
+                            <span>{compPendiente ? 'Subir Fac.' : 'Actualizar'}</span>
+                          </button>
+                        )}
+                        {pago.estado === 'Autorizado' && (currentUserRole === 'Contabilidad' || currentUserRole === 'Directorio' || currentUserRole === 'Admin') && (
+                          <button 
+                            type="button" 
+                            className="mobile-action-pill" 
+                            onClick={() => handleMarcarPagado(pago)}
+                            title="Marcar Pagado"
+                            style={{ color: 'var(--success)', background: 'rgba(16, 185, 129, 0.08)' }}
+                          >
+                            <CheckCircle size={13} />
+                            <span>Pagar</span>
+                          </button>
+                        )}
+                        {(currentUserRole === 'Directorio' || currentUserRole === 'Admin' || currentUserRole === 'Producción') && (
+                          <button 
+                            type="button" 
+                            className="mobile-action-pill danger" 
+                            onClick={() => handleDelete(pago.id)}
+                            title="Eliminar Pago"
+                          >
+                            <Trash2 size={13} />
+                            <span>Borrar</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           ) : (
             <table className="data-table" style={{ width: '100%', minWidth: viewMode === 'flat' ? '1540px' : '1280px', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
               {viewMode === 'flat' ? (

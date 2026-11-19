@@ -15,6 +15,7 @@ export const ClientesView: React.FC = () => {
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
 
   const isMobile = useIsMobile(768);
+  const [mobileDisplayMode, setMobileDisplayMode] = useState<'cards' | 'table'>('cards');
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(50);
@@ -108,7 +109,7 @@ export const ClientesView: React.FC = () => {
       </div>
 
       {/* TABLA DE CLIENTES — ESTRUCTURA UNIFICADA */}
-      <div className="desktop-table-container glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden' }}>
+      <div className="glass-panel table-container" style={{ marginBottom: '56px', padding: 0, overflow: 'hidden', display: (isMobile && mobileDisplayMode === 'cards') ? 'none' : 'block' }}>
         {/* ENCABEZADO CON CONTADOR Y CONTROLES DE DESPLAZAMIENTO */}
         <div style={{
           display: 'flex',
@@ -133,7 +134,28 @@ export const ClientesView: React.FC = () => {
             )}
           </div>
 
-          {/* Controles de desplazamiento horizontal de columnas */}
+          {isMobile && (
+              <div className="mobile-view-switcher">
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('cards')}
+                  title="Ver clientes como tarjetas"
+                >
+                  📱 Tarjetas
+                </button>
+                <button 
+                  type="button"
+                  className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setMobileDisplayMode('table')}
+                  title="Ver clientes como tabla completa"
+                >
+                  📋 Tabla
+                </button>
+              </div>
+            )}
+
+            {/* Controles de desplazamiento horizontal de columnas */}
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Desplazar:</span>
@@ -468,7 +490,29 @@ export const ClientesView: React.FC = () => {
 
 
       {/* Mobile Adaptive Cards View */}
-      <div className="mobile-cards-container">
+      {isMobile && mobileDisplayMode === 'cards' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+          <div className="mobile-view-switcher">
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('cards')}
+              title="Ver clientes como tarjetas"
+            >
+              📱 Tarjetas
+            </button>
+            <button 
+              type="button"
+              className={`mobile-view-switcher-btn ${mobileDisplayMode === 'table' ? 'active' : ''}`}
+              onClick={() => setMobileDisplayMode('table')}
+              title="Ver clientes como tabla completa"
+            >
+              📋 Tabla
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="mobile-cards-container" style={{ display: (isMobile && mobileDisplayMode === 'cards') ? 'flex' : 'none' }}>
         {isLoading ? (
           <SkeletonTable columns={1} rows={4} />
         ) : filteredClientes.length === 0 ? (

@@ -110,16 +110,18 @@ export function deleteTokens(userEmail?: string) {
 }
 
 export function getCalendarAuthUrl(options?: { frontendUrl?: string; action?: 'login' | 'calendar' | 'drive'; redirectUri?: string }) {
-  const oauth2Client = getOAuth2Client(options?.redirectUri);
+  const finalRedirectUri = options?.redirectUri || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:52823/api/auth/google/callback';
+  const oauth2Client = getOAuth2Client(finalRedirectUri);
   const stateObj = {
     frontendUrl: options?.frontendUrl || 'http://localhost:52824',
     action: options?.action || 'calendar',
-    redirectUri: options?.redirectUri
+    redirectUri: finalRedirectUri
   };
 
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
+    redirect_uri: finalRedirectUri,
     scope: [
       'openid',
       'https://www.googleapis.com/auth/userinfo.email',
