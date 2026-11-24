@@ -516,7 +516,7 @@ export const BookSlideCanvas: React.FC<BookSlideCanvasProps> = ({
                           {item.mediaType === 'video' ? (
                             interactiveMedia ? (
                               <video
-                                src={resolveMediaUrl(item.url)}
+                                src={`${resolveMediaUrl(item.url)}#t=0.001`}
                                 controls
                                 playsInline
                                 preload="metadata"
