@@ -3287,8 +3287,11 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
     if (config.notificacionPagosEmails) {
       config.notificacionPagosEmails.split(',').map(e => e.trim()).filter(Boolean).forEach(e => recipientsSet.add(e));
     }
-    if (config.notificarProveedorPago && prov?.correo && prov.correo.trim()) {
+    if ((config.notificarProveedorPago || true) && prov?.correo && prov.correo.trim()) {
       recipientsSet.add(prov.correo.trim());
+    }
+    if (req?.user?.email && req.user.email.includes('@purplebtl.com')) {
+      recipientsSet.add(req.user.email.trim());
     }
 
     const toAddresses = Array.from(recipientsSet).join(', ');
@@ -3300,7 +3303,24 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
     const subjectTemplate = config.notificacionPagosSubject || 'Pago a proveedor {{PAGO_ID}}';
     const emailSubject = replaceEmailVars(subjectTemplate);
 
-    const smtp = userDb?.smtpHost ? { host: userDb.smtpHost, port: userDb.smtpPort || 587, user: userDb.smtpUser || '', pass: userDb.smtpPass || '' } : undefined;
+    let smtp = userDb?.smtpHost ? { host: userDb.smtpHost, port: userDb.smtpPort || 587, user: userDb.smtpUser || '', pass: userDb.smtpPass || '' } : undefined;
+    if (!smtp) {
+      const adminSmtpUser = await prisma.user.findFirst({
+        where: {
+          smtpPass: { not: null },
+          smtpUser: { not: null }
+        }
+      });
+      if (adminSmtpUser?.smtpHost && adminSmtpUser?.smtpUser && adminSmtpUser?.smtpPass) {
+        smtp = {
+          host: adminSmtpUser.smtpHost,
+          port: adminSmtpUser.smtpPort || 587,
+          user: adminSmtpUser.smtpUser,
+          pass: adminSmtpUser.smtpPass
+        };
+      }
+    }
+
     await sendEmail(toAddresses, emailSubject, finalHtml, attachments, smtp);
 
     console.log(`[Email Notif] Correo enviado exitosamente a [${toAddresses}] para pago ${pagoId}`);
@@ -3608,31 +3628,35 @@ Devuelve ÚNICAMENTE un JSON con esta estructura exacta (sin markdown, sin expli
     let responseText: string | null = null;
     let lastError: any = null;
 
-    for (const modelName of modelsToTry) {
-      try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: [
-            {
-              inlineData: {
-                mimeType: actualMime,
-                data: base64Data
-              }
-            },
-            prompt
-          ],
-          config: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
+    if (!rawGeminiKey || !rawGeminiKey.startsWith('AIzaSy')) {
+      console.warn('[Gemini] GEMINI_API_KEY no configurada o inválida (debe empezar con AIzaSy). Se omite análisis de IA.');
+    } else {
+      for (const modelName of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              {
+                inlineData: {
+                  mimeType: actualMime,
+                  data: base64Data
+                }
+              },
+              prompt
+            ],
+            config: {
+              temperature: 0.1,
+              responseMimeType: 'application/json'
+            }
+          });
+          if (response && response.text) {
+            responseText = response.text;
+            break;
           }
-        });
-        if (response && response.text) {
-          responseText = response.text;
-          break;
+        } catch (err: any) {
+          console.error(`Error analizando comprobante con ${modelName}:`, err.message);
+          lastError = err;
         }
-      } catch (err: any) {
-        console.error(`Error analizando comprobante con ${modelName}:`, err.message);
-        lastError = err;
       }
     }
 
@@ -4242,6 +4266,10 @@ Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta (sin mark
   ],
   "notes": "Breve resumen ejecutivo de la cotización detectada"
 }`;
+
+    if (!rawGeminiKey || !rawGeminiKey.startsWith('AIzaSy')) {
+      return res.status(400).json({ error: 'La API Key de Gemini no está configurada o es inválida en el servidor. Configura GEMINI_API_KEY en Render con una clave válida de Google AI Studio (que inicie con AIzaSy).' });
+    }
 
     const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-flash-lite-latest'];
     let responseText = null;
@@ -5048,6 +5076,10 @@ Instrucciones Clave:
     }
 
     contents.push({ role: 'user', parts: [{ text: message }] });
+
+    if (!rawGeminiKey || !rawGeminiKey.startsWith('AIzaSy')) {
+      return res.status(400).json({ error: 'La API Key de Gemini no está configurada o es inválida en el servidor. Configura GEMINI_API_KEY en Render con una clave válida de Google AI Studio (que inicie con AIzaSy).' });
+    }
 
     const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash'];
     let responseText = null;
