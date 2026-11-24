@@ -22,6 +22,11 @@ model AppConfig {
   notificacionPagosTemplate String?
   habilitarNotificacionPagos Boolean? @default(false)
   notificarProveedorPago     Boolean? @default(false)
+  emailWebhookUrl            String?
+  emailWebhookSecret         String?
+  brevoApiKey                String?
+  resendApiKey               String?
+  emailFromAddress           String?
 }
 
 model Cliente {

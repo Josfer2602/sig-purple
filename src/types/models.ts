@@ -233,6 +233,16 @@ export interface AppConfig {
   notificacionPagosTemplate?: string;
   habilitarNotificacionPagos?: boolean;
   notificarProveedorPago?: boolean;
+  emailWebhookUrl?: string;
+  emailWebhookSecret?: string;
+  brevoApiKey?: string;
+  resendApiKey?: string;
+  emailFromAddress?: string;
+  hasEmailWebhook?: boolean;
+  hasEmailWebhookSecret?: boolean;
+  hasBrevoApiKey?: boolean;
+  hasResendApiKey?: boolean;
+  hasHttpsEmailRelay?: boolean;
 }
 
 export interface GastoProduccionItem {

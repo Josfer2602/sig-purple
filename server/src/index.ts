@@ -7,7 +7,14 @@ import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { sendEmail } from './services/emailService';
+import {
+  sendEmail,
+  diagnoseEmailConnectivity,
+  isSmtpCurrentlyBlocked,
+  hasConfiguredHttpsTransport,
+  SmtpConfig,
+  HttpsEmailConfig
+} from './services/emailService';
 import {
   uploadToDrive,
   listSharedDrives,
@@ -21,7 +28,7 @@ import {
 } from './services/driveService';
 import { getOrCreateDriveFolder, resolvePathAndUpload, resolvePathAndUploadBuffer, downloadBufferFromDrive } from './services/googleDriveService';
 import { startBackupCron, runFullBackup } from './services/backupService';
-import { generatePdfFromUrl } from './services/pdfService';
+import { generatePdfFromUrl, checkPdfEngineHealth, closePdfBrowser } from './services/pdfService';
 import { generateQuoteExcel, parseQuoteExcel } from './services/excelService';
 import { MeetingManager } from './services/meetingSocketService';
 import { createMeetingRouter } from './services/meetingRoutes';
@@ -235,6 +242,118 @@ const sanitizeUser = (user: any) => {
   const { password, smtpPass, ...safeUser } = user;
   return safeUser;
 };
+
+const MASKED_SECRET = '********';
+
+const buildHttpsConfigFromAppConfig = (cfg: any): HttpsEmailConfig => ({
+  webhookUrl: cfg?.emailWebhookUrl || process.env.EMAIL_WEBHOOK_URL || '',
+  webhookSecret: cfg?.emailWebhookSecret || process.env.EMAIL_WEBHOOK_SECRET || '',
+  brevoApiKey: cfg?.brevoApiKey || process.env.BREVO_API_KEY || '',
+  resendApiKey: cfg?.resendApiKey || process.env.RESEND_API_KEY || '',
+  fromEmail: cfg?.emailFromAddress || process.env.EMAIL_FROM || ''
+});
+
+const sanitizeAppConfig = (cfg: any, isAdmin: boolean) => {
+  if (!cfg) return {};
+  const hasWebhook = Boolean(cfg.emailWebhookUrl?.trim() || process.env.EMAIL_WEBHOOK_URL?.trim());
+  const hasWebhookSecret = Boolean(cfg.emailWebhookSecret?.trim());
+  const hasBrevo = Boolean(cfg.brevoApiKey?.trim() || process.env.BREVO_API_KEY?.trim());
+  const hasResend = Boolean(cfg.resendApiKey?.trim() || process.env.RESEND_API_KEY?.trim());
+
+  return {
+    ...cfg,
+    emailWebhookUrl: isAdmin ? (cfg.emailWebhookUrl || '') : (cfg.emailWebhookUrl ? '[configurado]' : ''),
+    emailWebhookSecret: cfg.emailWebhookSecret ? MASKED_SECRET : '',
+    brevoApiKey: cfg.brevoApiKey ? MASKED_SECRET : '',
+    resendApiKey: cfg.resendApiKey ? MASKED_SECRET : '',
+    hasEmailWebhook: hasWebhook,
+    hasEmailWebhookSecret: hasWebhookSecret,
+    hasBrevoApiKey: hasBrevo,
+    hasResendApiKey: hasResend,
+    hasHttpsEmailRelay: hasWebhook || hasBrevo || hasResend
+  };
+};
+
+async function resolveEmailContext(userId?: string): Promise<{
+  config: any;
+  userDb: any;
+  smtp?: SmtpConfig;
+  httpsConfig: HttpsEmailConfig;
+}> {
+  const [config, userDb] = await Promise.all([
+    prisma.appConfig.findUnique({ where: { id: 'global' } }),
+    userId ? prisma.user.findUnique({ where: { id: userId } }) : Promise.resolve(null)
+  ]);
+
+  let smtp: SmtpConfig | undefined;
+  if (userDb?.smtpHost?.trim() && userDb?.smtpUser?.trim() && userDb?.smtpPass?.trim()) {
+    smtp = {
+      host: userDb.smtpHost.trim(),
+      port: userDb.smtpPort || 587,
+      user: userDb.smtpUser.trim(),
+      pass: userDb.smtpPass.trim()
+    };
+  } else {
+    const adminSmtpUser = await prisma.user.findFirst({
+      where: {
+        smtpPass: { not: null },
+        smtpUser: { not: null }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+    if (adminSmtpUser?.smtpUser?.trim() && adminSmtpUser?.smtpPass?.trim()) {
+      smtp = {
+        host: (adminSmtpUser.smtpHost || 'smtp.gmail.com').trim(),
+        port: adminSmtpUser.smtpPort || 587,
+        user: adminSmtpUser.smtpUser.trim(),
+        pass: adminSmtpUser.smtpPass.trim()
+      };
+    }
+  }
+
+  const httpsConfig = buildHttpsConfigFromAppConfig(config);
+  if (!httpsConfig.fromEmail && (smtp?.user || process.env.SMTP_USER)) {
+    httpsConfig.fromEmail = (smtp?.user || process.env.SMTP_USER || '').trim();
+  }
+
+  return { config, userDb, smtp, httpsConfig };
+}
+
+function preflightPaymentEmailWarning(emailCtx: {
+  config: any;
+  smtp?: SmtpConfig;
+  httpsConfig: HttpsEmailConfig;
+}): string | undefined {
+  if (!emailCtx.config?.habilitarNotificacionPagos) return undefined;
+
+  const httpsInfo = hasConfiguredHttpsTransport(emailCtx.httpsConfig);
+  if (httpsInfo.configured) return undefined;
+
+  const hasSmtp = Boolean(
+    (emailCtx.smtp?.user && emailCtx.smtp?.pass) ||
+    (process.env.SMTP_USER && process.env.SMTP_PASS)
+  );
+
+  if (!hasSmtp) {
+    return 'Pago registrado, pero no se pudo enviar correo: faltan credenciales SMTP o envío HTTPS en Configuración > Correos.';
+  }
+
+  if (isSmtpCurrentlyBlocked()) {
+    return 'Pago registrado, pero los puertos SMTP (587/465) están bloqueados en este servidor (Render gratuito). Configura envío por HTTPS (Apps Script / Brevo / Resend) en Configuración > Correos.';
+  }
+
+  return undefined;
+}
+
+const recentPagoEmailStatus = new Map<string, { ok: boolean; error?: string; transport?: string; sentTo?: string; updatedAt: string }>();
+
+function recordPagoEmailStatus(pagoId: string, status: { ok: boolean; error?: string; transport?: string; sentTo?: string }) {
+  if (recentPagoEmailStatus.size >= 250) {
+    const firstKey = recentPagoEmailStatus.keys().next().value;
+    if (firstKey) recentPagoEmailStatus.delete(firstKey);
+  }
+  recentPagoEmailStatus.set(pagoId, { ...status, updatedAt: new Date().toISOString() });
+}
 
 const meetingManager = new MeetingManager(prisma);
 app.use('/api', optionalAuthenticateToken, createMeetingRouter(prisma, meetingManager));
@@ -2324,12 +2443,16 @@ async function uploadOrdenPdfToDrive(ordenId: string, req?: any): Promise<any> {
  * Si ya existen versiones previas, desglosa automáticamente en una subcarpeta
  * "[ID] - [Proveedor]" y agrupa el historial (V1, V2, etc.).
  */
-async function uploadPagoPdfToDrive(pagoId: string, req?: any): Promise<any> {
+async function uploadPagoPdfToDriveWithArtifact(
+  pagoId: string,
+  req?: any,
+  options?: { keepTempFile?: boolean }
+): Promise<{ driveResult: any; pdfPath: string | null }> {
   const pago = await prisma.pago.findUnique({
     where: { id: pagoId },
     include: { cliente: true, proyecto: true, proveedor: true, orden: true }
   });
-  if (!pago) return null;
+  if (!pago) return { driveResult: null, pdfPath: null };
 
   const originUrl = req?.headers?.origin || (req?.headers?.referer ? new URL(req.headers.referer).origin : '');
   const baseUrl = originUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -2341,6 +2464,7 @@ async function uploadPagoPdfToDrive(pagoId: string, req?: any): Promise<any> {
   );
 
   let pdfPath: string | null = null;
+  let driveResult: any = null;
   try {
     console.log(`[Google Drive] Generando PDF automático para pago ${pago.id}...`);
     pdfPath = await generatePdfFromUrl(`${baseUrl}/?printPago=${pago.id}&token=${reqToken}`, `pago_${pago.id}`);
@@ -2349,7 +2473,7 @@ async function uploadPagoPdfToDrive(pagoId: string, req?: any): Promise<any> {
     const cleanId = pago.numeroComprobante ? `Comprobante_${pago.numeroComprobante}` : pago.id;
     const fileName = `Pago_${cleanId}.pdf`;
 
-    const driveResult = await uploadToProjectDriveFolder({
+    driveResult = await uploadToProjectDriveFolder({
       projectId: pago.proyectoId,
       clienteId: pago.clienteId,
       clientName: pago.cliente?.empresa,
@@ -2377,14 +2501,26 @@ async function uploadPagoPdfToDrive(pagoId: string, req?: any): Promise<any> {
       console.log(`[Google Drive] ✅ PDF de pago ${pago.id} guardado en Drive: ${driveResult.webViewLink}`);
     }
 
-    return driveResult;
+    return {
+      driveResult,
+      pdfPath: options?.keepTempFile ? pdfPath : null
+    };
   } catch (err: any) {
     console.error(`[Google Drive] ⚠️ Error subiendo PDF automático de pago ${pago.id}:`, err?.message || err);
+    return {
+      driveResult: null,
+      pdfPath: options?.keepTempFile && pdfPath && fs.existsSync(pdfPath) ? pdfPath : null
+    };
   } finally {
-    if (pdfPath && fs.existsSync(pdfPath)) {
+    if (!options?.keepTempFile && pdfPath && fs.existsSync(pdfPath)) {
       try { fs.unlinkSync(pdfPath); } catch (e) {}
     }
   }
+}
+
+async function uploadPagoPdfToDrive(pagoId: string, req?: any): Promise<any> {
+  const { driveResult } = await uploadPagoPdfToDriveWithArtifact(pagoId, req, { keepTempFile: false });
+  return driveResult;
 }
 
 // --- ORDENES (CORREGIDO PARA GUARDAR) ---
@@ -2875,13 +3011,7 @@ app.post('/api/ordenes/send-email', authenticateToken, async (req: any, res: any
 
     console.log(`[Email Ordenes] Solicitud recibida: mode=${mode}, ${ordenIds.length} ordenes, usuario: ${req.user?.email || req.user?.id}`);
 
-    const userDb = req.user?.id ? await prisma.user.findUnique({ where: { id: req.user.id } }) : null;
-    const smtp = (userDb?.smtpHost && userDb.smtpHost.trim()) ? {
-      host: userDb.smtpHost.trim(),
-      port: userDb.smtpPort || 587,
-      user: userDb.smtpUser?.trim() || '',
-      pass: userDb.smtpPass?.trim() || ''
-    } : undefined;
+    const emailCtx = await resolveEmailContext(req.user?.id);
 
     // Para Puppeteer, priorizar el origen del cliente (localhost o dominio de producción)
     const originUrl = req?.headers?.origin || (req?.headers?.referer ? new URL(req.headers.referer).origin : '');
@@ -2988,7 +3118,7 @@ app.post('/api/ordenes/send-email', authenticateToken, async (req: any, res: any
         </div>
       `;
 
-      await sendEmail(targetTo, emailSubject, htmlBody, attachments, smtp, ccEmails);
+      await sendEmail(targetTo, emailSubject, htmlBody, attachments, emailCtx.smtp, ccEmails, emailCtx.httpsConfig);
 
       return res.json({
         success: true,
@@ -3063,7 +3193,7 @@ app.post('/api/ordenes/send-email', authenticateToken, async (req: any, res: any
             </div>
           `;
 
-          await sendEmail(provEmail, ordenSubject, htmlBody, attachments, smtp, ccEmails);
+          await sendEmail(provEmail, ordenSubject, htmlBody, attachments, emailCtx.smtp, ccEmails, emailCtx.httpsConfig);
           results.push({
             ordenId: orden.id,
             proveedor: orden.proveedor?.razonSocial,
@@ -3128,20 +3258,30 @@ function generateItemsTitle(items?: { name?: string | null; customDescription?: 
   return `${names[0]}, ${names[1]} y ${remainder} ítem${remainder > 1 ? 's' : ''} más`;
 }
 
-async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<boolean> {
+async function sendPagoNotificationEmailDetailed(
+  pagoId: string,
+  req: any,
+  options?: { existingPagoPdfPath?: string; skipPagoDriveUpload?: boolean }
+): Promise<{ success: boolean; error?: string; transport?: string; sentTo?: string }> {
   let oPdf: string | null = null;
-  let pPdf: string | null = null;
+  let pPdf: string | null =
+    options?.existingPagoPdfPath && fs.existsSync(options.existingPagoPdfPath)
+      ? options.existingPagoPdfPath
+      : null;
+  const ownsPagoPdf = !pPdf;
+
   try {
-    const config = await prisma.appConfig.findUnique({ where: { id: 'global' } });
+    const emailCtx = await resolveEmailContext(req?.user?.id);
+    const config = emailCtx.config;
     if (!config?.habilitarNotificacionPagos) {
       console.log(`[Email Notif] Envío desactivado por el Administrador para el pago ${pagoId}`);
-      return false;
+      return { success: false, error: 'El envío automático de notificaciones de pago está desactivado en Configuración.' };
     }
 
     const pago = await prisma.pago.findUnique({ where: { id: pagoId } });
     if (!pago) {
       console.warn(`[Email Notif] Pago ${pagoId} no encontrado en base de datos`);
-      return false;
+      return { success: false, error: `Pago ${pagoId} no encontrado en la base de datos.` };
     }
 
     const [prov, cli, proy, ordenObj] = await Promise.all([
@@ -3150,9 +3290,6 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
       pago.proyectoId ? prisma.proyecto.findUnique({ where: { id: pago.proyectoId } }) : null,
       pago.ordenId ? prisma.orden.findUnique({ where: { id: pago.ordenId }, include: { items: true } }) : null
     ]);
-
-    const userId = req?.user?.id;
-    const userDb = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
 
     const originUrl = req?.headers?.origin || (req?.headers?.referer ? new URL(req.headers.referer).origin : '');
     const baseUrl = originUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -3163,12 +3300,14 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
       { expiresIn: '1h' }
     );
 
-    // 1. Generar PDFs con Puppeteer
+    // 1. Generar PDFs con Puppeteer (sin duplicar si ya vino generado desde uploadPagoPdfToDriveWithArtifact)
     try {
       if (pago.ordenId) {
         oPdf = await generatePdfFromUrl(`${baseUrl}/?printOrden=${pago.ordenId}&token=${reqToken}`, 'orden');
       }
-      pPdf = await generatePdfFromUrl(`${baseUrl}/?printPago=${pago.id}&token=${reqToken}`, 'pago');
+      if (!pPdf) {
+        pPdf = await generatePdfFromUrl(`${baseUrl}/?printPago=${pago.id}&token=${reqToken}`, 'pago');
+      }
     } catch (pdfErr: any) {
       console.error(`[Email Notif] Error generando PDFs para pago ${pagoId}:`, pdfErr?.message || pdfErr);
     }
@@ -3272,8 +3411,8 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
           prisma
         });
       }
-      if (pPdf && fs.existsSync(pPdf)) {
-        await uploadToProjectDriveFolder({
+      if (!options?.skipPagoDriveUpload && pPdf && fs.existsSync(pPdf)) {
+        const pagoDriveRes = await uploadToProjectDriveFolder({
           projectId: proy?.id,
           clienteId: proy?.clienteId,
           clientName: cli?.empresa,
@@ -3286,6 +3425,12 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
           userEmail: resolveUserEmail(req),
           prisma
         });
+        if (pagoDriveRes?.webViewLink && !pago.pdfUrl) {
+          await prisma.pago.update({
+            where: { id: pago.id },
+            data: { pdfUrl: pagoDriveRes.webViewLink, driveFileId: pagoDriveRes.id }
+          }).catch(() => {});
+        }
       }
     } catch (e: any) {
       console.error('[Email Notif] Error subiendo PDFs a Drive:', e?.message || e);
@@ -3294,7 +3439,7 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
     // 4. Preparar destinatarios
     const recipientsSet = new Set<string>();
     if (config.notificacionPagosEmails) {
-      config.notificacionPagosEmails.split(',').map(e => e.trim()).filter(Boolean).forEach(e => recipientsSet.add(e));
+      config.notificacionPagosEmails.split(',').map((e: string) => e.trim()).filter(Boolean).forEach((e: string) => recipientsSet.add(e));
     }
     if ((config.notificarProveedorPago || true) && prov?.correo && prov.correo.trim()) {
       recipientsSet.add(prov.correo.trim());
@@ -3306,45 +3451,48 @@ async function triggerPagoNotificationEmail(pagoId: string, req: any): Promise<b
     const toAddresses = Array.from(recipientsSet).join(', ');
     if (!toAddresses) {
       console.log(`[Email Notif] Sin destinatarios configurados para pago ${pagoId}`);
-      return false;
+      recordPagoEmailStatus(pagoId, { ok: false, error: 'Sin destinatarios configurados en appConfig o proveedor.' });
+      return { success: false, error: 'Sin destinatarios configurados en Configuración > Correos.' };
     }
 
     const subjectTemplate = config.notificacionPagosSubject || 'Pago a proveedor {{PAGO_ID}}';
     const emailSubject = replaceEmailVars(subjectTemplate);
 
-    let smtp = userDb?.smtpHost ? { host: userDb.smtpHost, port: userDb.smtpPort || 587, user: userDb.smtpUser || '', pass: userDb.smtpPass || '' } : undefined;
-    if (!smtp) {
-      const adminSmtpUser = await prisma.user.findFirst({
-        where: {
-          smtpPass: { not: null },
-          smtpUser: { not: null }
-        }
-      });
-      if (adminSmtpUser?.smtpHost && adminSmtpUser?.smtpUser && adminSmtpUser?.smtpPass) {
-        smtp = {
-          host: adminSmtpUser.smtpHost,
-          port: adminSmtpUser.smtpPort || 587,
-          user: adminSmtpUser.smtpUser,
-          pass: adminSmtpUser.smtpPass
-        };
-      }
-    }
+    const sendRes = await sendEmail(
+      toAddresses,
+      emailSubject,
+      finalHtml,
+      attachments,
+      emailCtx.smtp,
+      undefined,
+      emailCtx.httpsConfig
+    );
 
-    await sendEmail(toAddresses, emailSubject, finalHtml, attachments, smtp);
-
-    console.log(`[Email Notif] Correo enviado exitosamente a [${toAddresses}] para pago ${pagoId}`);
-    return true;
+    console.log(`[Email Notif] ✅ Correo enviado (${sendRes.transport}) a [${toAddresses}] para pago ${pagoId}`);
+    recordPagoEmailStatus(pagoId, { ok: true, transport: sendRes.transport, sentTo: toAddresses });
+    return { success: true, transport: sendRes.transport, sentTo: toAddresses };
   } catch (err: any) {
-    console.error(`[Email Notif] Fallo controlado al enviar notificación de pago (${pagoId}):`, err.message);
-    return false;
+    const errMsg = err?.message || 'Error desconocido al enviar correo';
+    console.error(`[Email Notif] ❌ Fallo controlado al enviar notificación de pago (${pagoId}):`, errMsg);
+    recordPagoEmailStatus(pagoId, { ok: false, error: errMsg });
+    return { success: false, error: errMsg };
   } finally {
     if (oPdf && fs.existsSync(oPdf)) {
       try { fs.unlinkSync(oPdf); } catch (e) { }
     }
-    if (pPdf && fs.existsSync(pPdf)) {
+    if (ownsPagoPdf && pPdf && fs.existsSync(pPdf)) {
       try { fs.unlinkSync(pPdf); } catch (e) { }
     }
   }
+}
+
+async function triggerPagoNotificationEmail(
+  pagoId: string,
+  req: any,
+  options?: { existingPagoPdfPath?: string; skipPagoDriveUpload?: boolean }
+): Promise<boolean> {
+  const res = await sendPagoNotificationEmailDetailed(pagoId, req, options);
+  return res.success;
 }
 
 // --- PAGOS ---
@@ -3421,18 +3569,31 @@ app.get('/api/pagos', authenticateToken, async (req, res) => res.json(await pris
         notas: comentariosVal
       }
     });
-    res.json(result);
+    const preflightCtx = await resolveEmailContext(req.user?.id);
+    const emailWarning = preflightPaymentEmailWarning(preflightCtx);
 
-    // Subir PDF oficial a Google Drive y enviar notificación de correo en segundo plano
+    res.json(emailWarning ? { ...result, emailWarning } : result);
+
+    // Subir PDF oficial a Google Drive y enviar notificación de correo en segundo plano (sin duplicar PDF de pago)
     setImmediate(async () => {
+      let artifact: { driveResult: any; pdfPath: string | null } = { driveResult: null, pdfPath: null };
       try {
-        await uploadPagoPdfToDrive(result.id, req);
+        artifact = await uploadPagoPdfToDriveWithArtifact(result.id, req, { keepTempFile: true });
       } catch (dErr: any) {
         console.error('[Google Drive] Error al subir PDF de pago en segundo plano:', dErr?.message || dErr);
       }
-      triggerPagoNotificationEmail(result.id, req).catch(err => {
-        console.error('[Email Notif] Background error al notificar pago:', err);
-      });
+      try {
+        await triggerPagoNotificationEmail(result.id, req, {
+          existingPagoPdfPath: artifact.pdfPath || undefined,
+          skipPagoDriveUpload: Boolean(artifact.driveResult?.webViewLink)
+        });
+      } catch (err: any) {
+        console.error('[Email Notif] Background error al notificar pago:', err?.message || err);
+      } finally {
+        if (artifact.pdfPath && fs.existsSync(artifact.pdfPath)) {
+          try { fs.unlinkSync(artifact.pdfPath); } catch {}
+        }
+      }
     });
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -3534,21 +3695,41 @@ app.post('/api/pagos/batch', authenticateToken, async (req: any, res) => {
     }
 
     // Responder de inmediato al frontend para fluidez de la UI
-    res.json({ success: true, count: createdPagos.length, data: createdPagos });
+    const preflightCtx = await resolveEmailContext(req.user?.id);
+    const emailWarning = preflightPaymentEmailWarning(preflightCtx);
 
-    // Enviar notificaciones de correo y subir PDFs a Drive 1 por 1 en segundo plano
+    res.json({
+      success: true,
+      count: createdPagos.length,
+      data: createdPagos,
+      ...(emailWarning ? { emailWarning } : {})
+    });
+
+    // Enviar notificaciones de correo y subir PDFs a Drive 1 por 1 en segundo plano (sin duplicar PDFs)
     setImmediate(async () => {
-      for (const created of createdPagos) {
-        try {
-          await uploadPagoPdfToDrive(created.id, req);
-        } catch (dErr: any) {
-          console.error(`[Google Drive] Error al subir PDF en lote para pago ${created.id}:`, dErr?.message || dErr);
+      try {
+        for (const created of createdPagos) {
+          let artifact: { driveResult: any; pdfPath: string | null } = { driveResult: null, pdfPath: null };
+          try {
+            artifact = await uploadPagoPdfToDriveWithArtifact(created.id, req, { keepTempFile: true });
+          } catch (dErr: any) {
+            console.error(`[Google Drive] Error al subir PDF en lote para pago ${created.id}:`, dErr?.message || dErr);
+          }
+          try {
+            await triggerPagoNotificationEmail(created.id, req, {
+              existingPagoPdfPath: artifact.pdfPath || undefined,
+              skipPagoDriveUpload: Boolean(artifact.driveResult?.webViewLink)
+            });
+          } catch (err: any) {
+            console.error(`[Email Notif] Error enviando correo individual en lote para pago ${created.id}:`, err?.message || err);
+          } finally {
+            if (artifact.pdfPath && fs.existsSync(artifact.pdfPath)) {
+              try { fs.unlinkSync(artifact.pdfPath); } catch {}
+            }
+          }
         }
-        try {
-          await triggerPagoNotificationEmail(created.id, req);
-        } catch (err: any) {
-          console.error(`[Email Notif] Error enviando correo individual en lote para pago ${created.id}:`, err?.message || err);
-        }
+      } finally {
+        await closePdfBrowser();
       }
     });
   } catch (error: any) {
@@ -4067,52 +4248,97 @@ app.get('/api/print/pago/:id', optionalAuthenticateToken, async (req, res) => {
 });
 
 // --- EMAIL ---
+app.get('/api/email/diagnose', authenticateToken, async (req: any, res: any) => {
+  try {
+    const emailCtx = await resolveEmailContext(req.user?.id);
+    const [emailDiag, pdfEngine] = await Promise.all([
+      diagnoseEmailConnectivity(emailCtx.smtp, emailCtx.httpsConfig),
+      checkPdfEngineHealth()
+    ]);
+
+    let recommendation = '';
+    if (!emailDiag.canSendEmail) {
+      if (emailDiag.smtpBlockedByHosting) {
+        recommendation = 'Este servidor bloquea los puertos SMTP 587/465 (limitación del plan gratuito de Render). Configura Google Apps Script Webhook (gratis con tu Gmail) o Brevo API en la pestaña Correos, o actualiza a Render Starter ($7/mes).';
+      } else if (!emailDiag.hasSmtpCredentials) {
+        recommendation = 'No hay credenciales SMTP configuradas ni canal HTTPS activo.';
+      } else {
+        recommendation = `El puerto SMTP abre pero Gmail rechazó el acceso (${emailDiag.smtpVerifyError}). Verifica el App Password de Google.`;
+      }
+    } else if (emailDiag.smtpBlockedByHosting && emailDiag.httpsRelay.configured) {
+      recommendation = `SMTP está bloqueado por el hosting, pero el envío vía HTTPS está listo (${emailDiag.httpsRelay.providers.join(', ')}).`;
+    } else {
+      recommendation = 'Conexión operativa para envío de correos.';
+    }
+
+    res.json({
+      ...emailDiag,
+      pdfEngine,
+      recommendation
+    });
+  } catch (error: any) {
+    console.error('Error en /api/email/diagnose:', error);
+    res.status(500).json({ error: error.message || 'Error diagnosticando conexión de correo' });
+  }
+});
+
+app.get('/api/pagos/email-statuses', authenticateToken, (req: any, res: any) => {
+  res.json(Object.fromEntries(recentPagoEmailStatus));
+});
+
 app.post('/api/email/test', authenticateToken, async (req: any, res: any) => {
   try {
     const { to } = req.body;
-    const userId = req.user?.id;
-    const userDb = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
-    const smtp = userDb?.smtpHost ? { host: userDb.smtpHost, port: userDb.smtpPort || 587, user: userDb.smtpUser || '', pass: userDb.smtpPass || '' } : undefined;
+    const emailCtx = await resolveEmailContext(req.user?.id);
+    const smtp = emailCtx.smtp;
 
-    const targetEmail = to || userDb?.email || process.env.SMTP_USER;
+    const targetEmail = to || emailCtx.userDb?.email || smtp?.user || process.env.SMTP_USER;
     if (!targetEmail) {
       return res.status(400).json({ error: 'No se especificó un correo destinatario' });
     }
 
-    await sendEmail(
+    const sendRes = await sendEmail(
       targetEmail,
-      'Prueba de conexión SMTP - SIG Purple',
-      `<h3>Prueba de correo exitosa</h3><p>Este es un correo de prueba enviado desde SIG Purple BTL.</p><p>Servidor: ${smtp?.host || process.env.SMTP_HOST || 'smtp.gmail.com'}<br>Usuario remitente: ${smtp?.user || process.env.SMTP_USER}</p>`,
+      'Prueba de conexión de correo - SIG Purple',
+      `<h3>Prueba de correo exitosa</h3><p>Este es un correo de prueba enviado desde SIG Purple BTL.</p><p>Servidor: ${smtp?.host || process.env.SMTP_HOST || 'smtp.gmail.com'}<br>Usuario remitente: ${smtp?.user || emailCtx.httpsConfig.fromEmail || process.env.SMTP_USER}</p>`,
       [],
-      smtp
+      smtp,
+      undefined,
+      emailCtx.httpsConfig
     );
 
-    res.json({ success: true, message: `Correo de prueba enviado con éxito a ${targetEmail}` });
+    res.json({
+      success: true,
+      transport: sendRes.transport,
+      message: `Correo de prueba enviado con éxito a ${targetEmail} (canal: ${sendRes.transport})`
+    });
   } catch (error: any) {
     console.error('Error en /api/email/test:', error);
-    res.status(500).json({ error: error.message || 'Error al conectar con el servidor SMTP' });
+    res.status(500).json({ error: error.message || 'Error al conectar con el servidor de correo' });
   }
 });
 
 app.post('/api/email/send', authenticateToken, async (req: any, res: any) => {
   try {
-    const { to, subject, html, attachments } = req.body;
-    const userId = req.user?.id;
-    const userDb = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
-    const smtp = userDb?.smtpHost ? { host: userDb.smtpHost, port: userDb.smtpPort || 587, user: userDb.smtpUser || '', pass: userDb.smtpPass || '' } : undefined;
+    const { to, subject, html, attachments, cc } = req.body;
+    const emailCtx = await resolveEmailContext(req.user?.id);
 
-    await sendEmail(to, subject, html, attachments || [], smtp);
-    res.json({ success: true });
+    const sendRes = await sendEmail(to, subject, html, attachments || [], emailCtx.smtp, cc, emailCtx.httpsConfig);
+    res.json({ success: true, transport: sendRes.transport });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
+
 app.post('/api/pagos/:id/send-email', authenticateToken, async (req: any, res: any) => {
   try {
-    const success = await triggerPagoNotificationEmail(req.params.id, req);
-    res.json({ success });
+    const result = await sendPagoNotificationEmailDetailed(req.params.id, req);
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+    res.json(result);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -4120,29 +4346,84 @@ app.post('/api/pagos/:id/anular', authenticateToken, async (req: any, res: any) 
   try {
     const { id } = req.params;
     const pago = await prisma.pago.findUnique({ where: { id } });
-    if (!pago) throw new Error('Pago no encontrado');
+    if (!pago) return res.status(404).json({ error: 'Pago no encontrado' });
 
     // Cambiar estado a Anulado
     await prisma.pago.update({ where: { id }, data: { estado: 'Anulado' } });
 
-    // Send cancellation email
-    const [prov, config, userDb] = await Promise.all([
+    const [prov, emailCtx] = await Promise.all([
       prisma.proveedor.findUnique({ where: { id: pago.proveedorId } }),
-      prisma.appConfig.findUnique({ where: { id: 'global' } }),
-      prisma.user.findUnique({ where: { id: req.user.id } })
+      resolveEmailContext(req.user?.id)
     ]);
 
-    const html = `<h2>ANULACIÓN OFICIAL</h2><p>Estimado/a ${prov?.razonSocial || 'Proveedor'},</p><p>Le notificamos oficialmente que el pago con identificador <b>${pago.id}</b> ha sido <b>ANULADO</b>.</p><p>Cualquier documento o comprobante asociado a este pago queda sin efecto.</p><p>Atentamente,<br>Purple BTL</p>`;
-    const smtp = userDb?.smtpHost ? { host: userDb.smtpHost, port: userDb.smtpPort || 465, user: userDb.smtpUser || '', pass: userDb.smtpPass || '' } : undefined;
+    const config = emailCtx.config;
+    const recipients = new Set<string>();
+    if (config?.notificacionPagosEmails) {
+      config.notificacionPagosEmails.split(',').map((e: string) => e.trim()).filter(Boolean).forEach((e: string) => recipients.add(e));
+    }
+    if (config?.notificarProveedorPago && prov?.correo?.trim()) {
+      recipients.add(prov.correo.trim());
+    }
+    const toList = Array.from(recipients).join(', ');
 
-    await sendEmail(config?.notificacionPagosEmails || '', `ANULACIÓN: Pago a Proveedor ${pago.id}`, html, [], smtp);
+    let emailSent = false;
+    let emailWarning: string | undefined;
 
-    res.json({ success: true, estado: 'Anulado' });
+    if (toList) {
+      const html = `<h2>ANULACIÓN OFICIAL</h2><p>Estimado/a ${prov?.razonSocial || 'Proveedor'},</p><p>Le notificamos oficialmente que el pago con identificador <b>${pago.id}</b> ha sido <b>ANULADO</b>.</p><p>Cualquier documento o comprobante asociado a este pago queda sin efecto.</p><p>Atentamente,<br>Purple BTL</p>`;
+      try {
+        await sendEmail(toList, `ANULACIÓN: Pago a Proveedor ${pago.id}`, html, [], emailCtx.smtp, undefined, emailCtx.httpsConfig);
+        emailSent = true;
+      } catch (mailErr: any) {
+        console.error(`[Email Anulación] No se pudo enviar aviso de anulación para ${pago.id}:`, mailErr?.message || mailErr);
+        emailWarning = `Pago anulado en el sistema, pero no se pudo enviar correo de aviso: ${mailErr?.message || 'Error de correo'}`;
+      }
+    }
+
+    res.json({ success: true, estado: 'Anulado', emailSent, ...(emailWarning ? { emailWarning } : {}) });
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // --- CONFIG & OTROS ---
-app.get('/api/config', authenticateToken, async (req, res) => res.json(await prisma.appConfig.findUnique({ where: { id: 'global' } }) || {})); app.put('/api/config', authenticateToken, requireAdmin, async (req, res) => res.json(await prisma.appConfig.upsert({ where: { id: 'global' }, update: req.body, create: { id: 'global', ...req.body } }))); app.post('/api/backup', authenticateToken, requireAdmin, async (req, res) => res.json(await runFullBackup()));
+app.get('/api/config', authenticateToken, async (req: any, res) => {
+  const cfg = await prisma.appConfig.findUnique({ where: { id: 'global' } });
+  res.json(sanitizeAppConfig(cfg, req.user?.role === 'Admin'));
+});
+
+app.put('/api/config', authenticateToken, requireAdmin, async (req, res) => {
+  const {
+    hasEmailWebhook,
+    hasEmailWebhookSecret,
+    hasBrevoApiKey,
+    hasResendApiKey,
+    hasHttpsEmailRelay,
+    id: _ignoredId,
+    ...rawBody
+  } = req.body || {};
+
+  const updateData: any = { ...rawBody };
+  for (const secretField of ['emailWebhookSecret', 'brevoApiKey', 'resendApiKey']) {
+    if (updateData[secretField] === MASKED_SECRET) {
+      delete updateData[secretField];
+    } else if (typeof updateData[secretField] === 'string') {
+      updateData[secretField] = updateData[secretField].trim() || null;
+    }
+  }
+  for (const strField of ['emailWebhookUrl', 'emailFromAddress']) {
+    if (typeof updateData[strField] === 'string') {
+      updateData[strField] = updateData[strField].trim() || null;
+    }
+  }
+
+  const saved = await prisma.appConfig.upsert({
+    where: { id: 'global' },
+    update: updateData,
+    create: { id: 'global', ...updateData }
+  });
+  res.json(sanitizeAppConfig(saved, true));
+});
+
+app.post('/api/backup', authenticateToken, requireAdmin, async (req, res) => res.json(await runFullBackup()));
 // Chatbot API (ai client initialized at top level)
 
 // --- AI QUOTE PARSER ---

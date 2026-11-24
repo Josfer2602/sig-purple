@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Printer, FileText, ExternalLink, Upload, Edit3 } from 'lucide-react';
+import { X, Printer, FileText, ExternalLink, Upload, Edit3, Mail, Loader2 } from 'lucide-react';
 import type { Pago, Orden, Proveedor, Cliente, Proyecto } from '../types/models';
 import { useGlobalContext, BASE_URL, API_URL } from '../context/GlobalContext';
 import { generateItemsTitle, cleanItemDescription } from '../utils/orderTitleHelper';
@@ -21,11 +21,12 @@ interface Props {
 }
 
 export const PagoDocumentModal: React.FC<Props> = ({ isOpen, onClose, pago, orden, proveedor, cliente, proyecto, onViewOrden, onRegularize }) => {
-  const { appConfig, updatePago } = useGlobalContext();
+  const { appConfig, updatePago, token } = useGlobalContext();
   const [extraData, setExtraData] = useState<any>(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   useEffect(() => {
     if (pago) {
@@ -176,6 +177,37 @@ export const PagoDocumentModal: React.FC<Props> = ({ isOpen, onClose, pago, orde
             <Upload size={18} /> Regularizar Factura / Recibo
           </button>
         )}
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={isSendingEmail}
+          onClick={async () => {
+            if (!window.confirm(`¿Enviar el pago ${pago.id} y sus adjuntos por correo ahora?`)) return;
+            setIsSendingEmail(true);
+            try {
+              const authToken = token || localStorage.getItem('token') || '';
+              const res = await fetch(`${API_URL}/pagos/${pago.id}/send-email`, {
+                method: 'POST',
+                headers: {
+                  ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+                }
+              });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok || !data.success) {
+                throw new Error(data.error || 'No se pudo enviar el correo');
+              }
+              toast.success(`Correo enviado exitosamente (${data.sentTo || 'destinatarios'})`);
+            } catch (err: any) {
+              toast.error('Error al enviar correo: ' + (err?.message || 'Error de conexión'), { duration: 7000 });
+            } finally {
+              setIsSendingEmail(false);
+            }
+          }}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#ede9fe', color: '#6d28d9', borderColor: '#ddd6fe', padding: '6px 14px', borderRadius: '6px', cursor: isSendingEmail ? 'wait' : 'pointer', fontWeight: 600 }}
+        >
+          {isSendingEmail ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+          {isSendingEmail ? 'Enviando...' : 'Enviar por Correo'}
+        </button>
         <button className="btn-primary" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Printer size={18} /> Imprimir / PDF
         </button>

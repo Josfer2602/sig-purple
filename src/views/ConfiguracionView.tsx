@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGlobalContext, API_URL } from '../context/GlobalContext';
-import { Settings, Image as ImageIcon, Code, Plus, X, Save, Mail, Send, Loader2, FileSpreadsheet, Download } from 'lucide-react';
+import { Settings, Image as ImageIcon, Code, Plus, X, Save, Mail, Send, Loader2, FileSpreadsheet, Download, Activity, Copy, CheckCircle2, AlertTriangle, Cloud } from 'lucide-react';
 import { DocumentTemplateEditor } from '../components/DocumentTemplateEditor';
 import { buildHeaderHtmlFromVisual, buildFooterHtmlFromVisual, DEFAULT_ORDEN_VISUAL_CONFIG, DEFAULT_PAGO_VISUAL_CONFIG } from '../utils/documentTemplateHelper';
 import { exportFullDatabaseToExcel, exportClientesToExcel, exportProyectosToExcel, exportCotizacionesToExcel, exportProveedoresToExcel, exportOrdenesToExcel, exportPagosToExcel, exportFacturasToExcel, exportGastosToExcel } from '../utils/excelExport';
@@ -29,6 +29,9 @@ export const ConfiguracionView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('documentos');
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isDiagnosingEmail, setIsDiagnosingEmail] = useState(false);
+  const [diagnoseResult, setDiagnoseResult] = useState<any>(null);
+  const [showAppsScriptGuide, setShowAppsScriptGuide] = useState(false);
   
   // Local state for documents
   const [ordenHeaderHtml, setOrdenHeaderHtml] = useState(appConfig?.ordenHeaderHtml || '');
@@ -40,6 +43,11 @@ export const ConfiguracionView: React.FC = () => {
   const [notificacionPagosTemplate, setNotificacionPagosTemplate] = useState(appConfig?.notificacionPagosTemplate || '');
   const [habilitarNotificacionPagos, setHabilitarNotificacionPagos] = useState<boolean>(appConfig?.habilitarNotificacionPagos ?? false);
   const [notificarProveedorPago, setNotificarProveedorPago] = useState<boolean>(appConfig?.notificarProveedorPago ?? false);
+  const [emailWebhookUrl, setEmailWebhookUrl] = useState(appConfig?.emailWebhookUrl || '');
+  const [emailWebhookSecret, setEmailWebhookSecret] = useState(appConfig?.emailWebhookSecret || '');
+  const [brevoApiKey, setBrevoApiKey] = useState(appConfig?.brevoApiKey || '');
+  const [resendApiKey, setResendApiKey] = useState(appConfig?.resendApiKey || '');
+  const [emailFromAddress, setEmailFromAddress] = useState(appConfig?.emailFromAddress || '');
 
   // Local state for lists
   const defaultListas: ListasDinamicas = {
@@ -84,6 +92,11 @@ export const ConfiguracionView: React.FC = () => {
       setNotificacionPagosTemplate(appConfig.notificacionPagosTemplate || '');
       setHabilitarNotificacionPagos(appConfig.habilitarNotificacionPagos ?? false);
       setNotificarProveedorPago(appConfig.notificarProveedorPago ?? false);
+      setEmailWebhookUrl(appConfig.emailWebhookUrl || '');
+      setEmailWebhookSecret(appConfig.emailWebhookSecret || '');
+      setBrevoApiKey(appConfig.brevoApiKey || '');
+      setResendApiKey(appConfig.resendApiKey || '');
+      setEmailFromAddress(appConfig.emailFromAddress || '');
     }
     if (listas) {
       setLocalListas({
@@ -130,6 +143,11 @@ export const ConfiguracionView: React.FC = () => {
         notificacionPagosTemplate,
         habilitarNotificacionPagos,
         notificarProveedorPago,
+        emailWebhookUrl,
+        emailWebhookSecret,
+        brevoApiKey,
+        resendApiKey,
+        emailFromAddress,
         listasDinamicas: JSON.stringify(updatedListas)
       });
       toast.success('¡Plantillas y configuración guardadas correctamente!');
@@ -138,6 +156,31 @@ export const ConfiguracionView: React.FC = () => {
       toast.error('Error al guardar: ' + (err?.message || 'Error de conexión'));
     } finally {
       setIsSavingConfig(false);
+    }
+  };
+
+  const handleDiagnoseEmail = async () => {
+    setIsDiagnosingEmail(true);
+    try {
+      const res = await fetch(`${API_URL}/email/diagnose`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || 'Error ejecutando diagnóstico');
+      }
+      setDiagnoseResult(data);
+      if (data.canSendEmail) {
+        toast.success('Diagnóstico completado: hay un canal de correo operativo (sin enviar correo).');
+      } else {
+        toast.error('Diagnóstico: el servidor actual no puede enviar correos todavía. Revisa el detalle.', { duration: 7000 });
+      }
+    } catch (err: any) {
+      toast.error('Error en diagnóstico: ' + (err?.message || 'Error de conexión'));
+    } finally {
+      setIsDiagnosingEmail(false);
     }
   };
 
@@ -159,12 +202,12 @@ export const ConfiguracionView: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al conectar con SMTP');
+        throw new Error(data.error || 'Error al conectar con el servidor de correo');
       }
       toast.success(data.message || 'Correo de prueba enviado exitosamente.');
     } catch (err: any) {
       console.error(err);
-      toast.error('Error SMTP: ' + err.message, { duration: 6000 });
+      toast.error('Error al enviar correo: ' + err.message, { duration: 8000 });
     } finally {
       setIsTestingEmail(false);
     }
@@ -776,35 +819,262 @@ export const ConfiguracionView: React.FC = () => {
                 />
               </div>
 
-              {/* Botón de Prueba */}
+              {/* Envío por HTTPS (Para Render Gratuito sin bloqueo SMTP) */}
+              <div style={{
+                padding: '18px 20px',
+                background: 'rgba(124, 58, 237, 0.04)',
+                border: '1px solid rgba(124, 58, 237, 0.25)',
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Cloud size={20} color="#7c3aed" />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Canal de Correo en Nube (HTTPS Puerto 443)</span>
+                        {appConfig?.hasHttpsEmailRelay && (
+                          <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#059669', padding: '2px 8px', borderRadius: '999px' }}>
+                            Configurado
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                        Render Free bloquea puertos SMTP (587/465). Configura Google Apps Script (gratis con Gmail Workspace) o Brevo/Resend para enviar vía HTTPS sin bloqueos.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowAppsScriptGuide(prev => !prev)}
+                    style={{ fontSize: '12px', padding: '6px 12px' }}
+                  >
+                    {showAppsScriptGuide ? 'Ocultar Guía Apps Script' : 'Cómo usar Google Apps Script (Gratis)'}
+                  </button>
+                </div>
+
+                {showAppsScriptGuide && (
+                  <div style={{
+                    background: 'var(--bg-panel)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div>
+                      <strong>Pasos (1 minuto, 100% gratis con tu Gmail @purplebtl.com):</strong>
+                      <ol style={{ margin: '6px 0 0 18px', padding: 0, lineHeight: 1.6 }}>
+                        <li>Abre <a href="https://script.google.com" target="_blank" rel="noreferrer" style={{ color: '#7c3aed', fontWeight: 600 }}>script.google.com</a> con tu cuenta <code>jose.narva@purplebtl.com</code> y crea un <strong>Nuevo proyecto</strong>.</li>
+                        <li>Pega el código de abajo, guarda, pulsa <strong>Implementar &rarr; Nueva implementación &rarr; Aplicación web</strong>.</li>
+                        <li>En <em>Ejecutar como</em> selecciona <strong>Yo (tu correo)</strong> y en <em>Quién tiene acceso</em> selecciona <strong>Cualquier usuario</strong>.</li>
+                        <li>Autoriza el permiso de Gmail, copia la <strong>URL de la aplicación web</strong> y pégala abajo + <strong>Guardar</strong>.</li>
+                      </ol>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <pre style={{
+                        margin: 0,
+                        padding: '10px',
+                        borderRadius: '6px',
+                        background: '#0f172a',
+                        color: '#e2e8f0',
+                        fontSize: '11px',
+                        overflowX: 'auto',
+                        lineHeight: 1.45
+                      }}>{`function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents || '{}');
+    var blobs = (payload.attachments || []).map(function(att) {
+      return Utilities.newBlob(
+        Utilities.base64Decode(att.contentBase64),
+        att.contentType || 'application/pdf',
+        att.filename || 'adjunto.pdf'
+      );
+    });
+    GmailApp.sendEmail(payload.to, payload.subject || 'Notificación SIG Purple', '', {
+      htmlBody: payload.html || '',
+      cc: payload.cc || undefined,
+      attachments: blobs
+    });
+    return ContentService.createTextOutput(JSON.stringify({ success: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`}</pre>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const code = `function doPost(e) {\n  try {\n    var payload = JSON.parse(e.postData.contents || '{}');\n    var blobs = (payload.attachments || []).map(function(att) {\n      return Utilities.newBlob(\n        Utilities.base64Decode(att.contentBase64),\n        att.contentType || 'application/pdf',\n        att.filename || 'adjunto.pdf'\n      );\n    });\n    GmailApp.sendEmail(payload.to, payload.subject || 'Notificación SIG Purple', '', {\n      htmlBody: payload.html || '',\n      cc: payload.cc || undefined,\n      attachments: blobs\n    });\n    return ContentService.createTextOutput(JSON.stringify({ success: true }))\n      .setMimeType(ContentService.MimeType.JSON);\n  } catch (err) {\n    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))\n      .setMimeType(ContentService.MimeType.JSON);\n  }\n}`;
+                          navigator.clipboard?.writeText(code);
+                          toast.success('Código Apps Script copiado al portapapeles.');
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid #475569',
+                          background: '#1e293b',
+                          color: '#fff',
+                          fontSize: '11px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Copy size={12} /> Copiar código
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '12px' }}>URL Web App Google Apps Script (HTTPS)</label>
+                    <input
+                      type="url"
+                      className="form-control"
+                      value={emailWebhookUrl}
+                      onChange={e => setEmailWebhookUrl(e.target.value)}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '12px' }}>Secret Webhook (Opcional)</label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      value={emailWebhookSecret}
+                      onChange={e => setEmailWebhookSecret(e.target.value)}
+                      placeholder="Dejar vacío si no usas secret"
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '12px' }}>Correo Remitente (para Brevo/Resend)</label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      value={emailFromAddress}
+                      onChange={e => setEmailFromAddress(e.target.value)}
+                      placeholder="jose.narva@purplebtl.com"
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '12px' }}>Brevo API Key (Alternativa HTTP - 300/día gratis)</label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      value={brevoApiKey}
+                      onChange={e => setBrevoApiKey(e.target.value)}
+                      placeholder="xkeysib-..."
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '12px' }}>Resend API Key (Alternativa HTTP)</label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      value={resendApiKey}
+                      onChange={e => setResendApiKey(e.target.value)}
+                      placeholder="re_..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón de Diagnóstico y Prueba */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
+                gap: '12px',
                 padding: '16px',
                 background: 'rgba(0, 0, 0, 0.02)',
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px',
                 marginTop: '8px'
               }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
-                    Diagnóstico y Prueba de Conexión
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                      Diagnóstico y Prueba de Conexión
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Diagnostica puertos SMTP, canal HTTPS y generación PDF sin enviar correos, o envía un correo de prueba.
+                    </p>
                   </div>
-                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Envía un correo de prueba inmediato para validar si las credenciales de correo (SMTP) están aceptadas por Gmail.
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleDiagnoseEmail}
+                      disabled={isDiagnosingEmail}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+                    >
+                      {isDiagnosingEmail ? <Loader2 size={16} className="animate-spin" /> : <Activity size={16} />}
+                      {isDiagnosingEmail ? 'Diagnosticando...' : 'Diagnosticar Conexión (Sin Enviar)'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleTestEmail}
+                      disabled={isTestingEmail}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
+                    >
+                      {isTestingEmail ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                      {isTestingEmail ? 'Verificando SMTP...' : 'Probar Envío de Correo'}
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={handleTestEmail}
-                  disabled={isTestingEmail}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
-                >
-                  {isTestingEmail ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                  {isTestingEmail ? 'Verificando SMTP...' : 'Probar Envío de Correo'}
-                </button>
+
+                {diagnoseResult && (
+                  <div style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${diagnoseResult.canSendEmail ? '#86efac' : '#fca5a5'}`,
+                    background: diagnoseResult.canSendEmail ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: diagnoseResult.canSendEmail ? '#047857' : '#b91c1c' }}>
+                      {diagnoseResult.canSendEmail ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                      <span>
+                        {diagnoseResult.canSendEmail
+                          ? 'Servidor listo para enviar correos'
+                          : 'El servidor no tiene un canal de salida de correo operativo'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Entorno:</strong> {diagnoseResult.environment} |{' '}
+                      <strong>SMTP 587:</strong> {diagnoseResult.ports?.port587?.ok ? `OK (${diagnoseResult.ports.port587.latencyMs}ms)` : `Bloqueado/Timeout (${diagnoseResult.ports?.port587?.code || diagnoseResult.ports?.port587?.error})`} |{' '}
+                      <strong>SMTP 465:</strong> {diagnoseResult.ports?.port465?.ok ? `OK (${diagnoseResult.ports.port465.latencyMs}ms)` : `Bloqueado/Timeout (${diagnoseResult.ports?.port465?.code || diagnoseResult.ports?.port465?.error})`}
+                    </div>
+                    <div>
+                      <strong>Canal HTTPS (Puerto 443):</strong>{' '}
+                      {diagnoseResult.httpsRelay?.configured
+                        ? diagnoseResult.httpsRelay.providers.join(', ')
+                        : 'No configurado'} |{' '}
+                      <strong>Motor PDF (Chrome):</strong>{' '}
+                      {diagnoseResult.pdfEngine?.available ? 'Disponible' : `No disponible (${diagnoseResult.pdfEngine?.error || 'sin binario'})`}
+                    </div>
+                    {diagnoseResult.recommendation && (
+                      <div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>
+                        <strong>Recomendación:</strong> {diagnoseResult.recommendation}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

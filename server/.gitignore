@@ -18,4 +18,5 @@ backups/
 uploads/SIG_Purple_Backup_*.json
 
 /generated/prisma
+.cache/
 

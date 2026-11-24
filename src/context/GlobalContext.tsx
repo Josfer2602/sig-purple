@@ -525,6 +525,9 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al crear pagos en lote');
+    if (data.emailWarning) {
+      toast(data.emailWarning, { icon: '⚠️', duration: 9000 });
+    }
     const createdList = Array.isArray(data.data) ? data.data : [];
     setPagos(prev => [...createdList, ...prev]);
     return createdList;
@@ -537,7 +540,11 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const res = await fetch(`${API_URL}/pagos`, { method: 'POST', headers: h, body: isFD ? pago : JSON.stringify(pago) });
     const data = await res.json(); 
     if (!res.ok) throw new Error(data.error || 'Error al guardar el pago');
-    setPagos(prev => [data, ...prev]);
+    const { emailWarning, ...cleanPago } = data || {};
+    if (emailWarning) {
+      toast(emailWarning, { icon: '⚠️', duration: 9000 });
+    }
+    setPagos(prev => [cleanPago, ...prev]);
   };
   const updatePago = async (p: Pago | FormData, idParam?: string) => {
     let pagoId = idParam;
@@ -588,8 +595,12 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
   const anularPago = async (id: string) => {
     const res = await fetch(`${API_URL}/pagos/${id}/anular`, { method: 'POST', headers: getHeaders() });
-    if (!res.ok) throw new Error('Error al anular pago');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Error al anular pago');
     setPagos(prev => prev.map(p => p.id === id ? { ...p, estado: 'Anulado' } : p));
+    if (data?.emailWarning) {
+      toast(data.emailWarning, { icon: '⚠️', duration: 9000 });
+    }
   };
 
   const addGantt = async (g: ProjectGantt) => {
@@ -714,7 +725,8 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const updateConfig = async (c: Partial<AppConfig>) => {
     const res = await fetch(`${API_URL}/config`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(c) });
-    const data = await res.json(); 
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Error al actualizar configuración');
     setAppConfig(data);
     if (data?.listasDinamicas) {
       try {
