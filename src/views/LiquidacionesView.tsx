@@ -1,11 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { useGlobalContext } from '../context/GlobalContext';
-import { ChevronDown, ChevronRight, ChevronLeft, Search, X, CheckCircle, Clock, List, FolderTree, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Search, X, CheckCircle, Clock, List, FolderTree, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Quote } from '../types/quote';
-import type { Orden, OrdenSubItem, GastoProduccion, GastoProduccionItem } from '../types/models';
 import { SkeletonTable } from '../components/SkeletonTable';
 import { useIsMobile } from '../hooks/useIsMobile';
+import {
+  calculateQuoteMetrics as computeQuoteMetrics,
+  getQuoteDesgloseStats as computeQuoteDesgloseStats,
+  isQuoteEligibleForLiquidacion
+} from '../utils/liquidacionHelpers';
 
 export const LiquidacionesView: React.FC = () => {
   const { quotes, clientes, proyectos, ordenes, pagos, gastosProduccion, proveedores, updateQuote, updateProyecto, isLoading } = useGlobalContext();
@@ -114,325 +118,14 @@ export const LiquidacionesView: React.FC = () => {
     }
   };
 
-  const isOrdenRelatedToQuote = (o: any, q: Quote) => {
-    if (o.quoteId) {
-      return o.quoteId === q.id;
-    }
-    if (q.projectId && o.proyectoId === q.projectId) {
-      const quoteSubItemIds = new Set<string>();
-      (q.categories || []).forEach(c => c.items?.forEach(it => it.subItems?.forEach(sub => {
-        if (sub.id) quoteSubItemIds.add(String(sub.id));
-      })));
-      const hasMatchingItem = (o.items || []).some((oi: any) => oi.quoteSubItemId && quoteSubItemIds.has(String(oi.quoteSubItemId)));
-      if (hasMatchingItem) return true;
+  const calculateQuoteMetrics = (q: Quote) =>
+    computeQuoteMetrics(q, ordenes, pagos, gastosProduccion, proveedores, quotes);
 
-      const approvedProjectQuotes = quotes.filter(otherQ => {
-        const s = (otherQ.status || '').toLowerCase();
-        return otherQ.projectId === q.projectId && (s.includes('aprob') || s.includes('liquid'));
-      });
-      if (approvedProjectQuotes.length <= 1) return true;
-    }
-    return false;
-  };
-
-  const isGastoRelatedToQuote = (g: any, q: Quote) => {
-    if (g.quoteId) {
-      return g.quoteId === q.id;
-    }
-    if (q.projectId && g.proyectoId === q.projectId) {
-      const approvedProjectQuotes = quotes.filter(otherQ => {
-        const s = (otherQ.status || '').toLowerCase();
-        return otherQ.projectId === q.projectId && (s.includes('aprob') || s.includes('liquid'));
-      });
-      if (approvedProjectQuotes.length <= 1) return true;
-    }
-    return false;
-  };
-
-  const calculateQuoteMetrics = (q: Quote) => {
-    let totalCostoProveedor = 0;
-    let totalCostoCliente = 0;
-
-    q.categories.forEach(cat => {
-      cat.items.forEach(item => {
-        const itemTotalProvider = item.subItems.reduce((acc, sub) => acc + (sub.unitCost * sub.quantity * sub.dates), 0);
-        totalCostoProveedor += itemTotalProvider;
-
-        const internalMultiplierAmount = itemTotalProvider * ((item.internalMultiplierPercent || 0) / 100);
-        const financialExpense = itemTotalProvider * ((item.financialExpensePercent || 0) / 100);
-        const rawCalculatedClientCost = itemTotalProvider + internalMultiplierAmount + financialExpense;
-        const finalClientCost = Math.round(rawCalculatedClientCost);
-        totalCostoCliente += finalClientCost;
-      });
-    });
-
-    const ordenesRelacionadas = ordenes.filter(o => isOrdenRelatedToQuote(o, q));
-    const gastosRelacionados = gastosProduccion.filter(g => isGastoRelatedToQuote(g, q));
-    
-    const getOrderCostSinIgv = (o: any) => {
-      if (o.items && o.items.length > 0) {
-        const itemsSubtotal = o.items.reduce((sum: number, it: any) => sum + (Number(it.total) || 0), 0);
-        if (itemsSubtotal > 0) return itemsSubtotal;
-      }
-      const prov = proveedores.find(pr => pr.id === o.proveedorId);
-      const tieneIgv = prov?.tipoDocumento === 'Factura';
-      return tieneIgv ? (Number(o.total) || 0) / 1.18 : (Number(o.total) || 0);
-    };
-
-    const gastoRealOrdenes = ordenesRelacionadas.reduce((acc, o) => acc + getOrderCostSinIgv(o), 0);
-    const gastoRealProduccion = gastosRelacionados.reduce((acc, g) => acc + g.total, 0);
-    
-    const gastoReal = gastoRealOrdenes + gastoRealProduccion;
-
-    const totalVentaCliente = totalCostoCliente * 1.12; // Inclusión del 12% Fee de Agencia cotizado al cliente
-    const margenProyectado = totalVentaCliente - totalCostoProveedor;
-    const margenReal = totalVentaCliente - gastoReal;
-
-    const porcentajeMargenProyectado = totalCostoProveedor > 0 ? (margenProyectado / totalCostoProveedor) * 100 : 0;
-    const porcentajeMargenReal = gastoReal > 0 ? (margenReal / gastoReal) * 100 : 0;
-
-    const pagadoTotal = pagos
-      .filter(p => (p.quoteId === q.id || (p.ordenId && ordenes.some(o => o.id === p.ordenId && (o.quoteId === q.id || (q.projectId && o.proyectoId === q.projectId))))) && p.estado === 'Pagado')
-      .reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
-
-    return {
-      venta: totalVentaCliente,
-      gastoProyectado: totalCostoProveedor,
-      gastoReal,
-      pagadoTotal,
-      margenProyectado,
-      margenReal,
-      porcentajeMargenProyectado,
-      porcentajeMargenReal
-    };
-  };
-
-  const getQuoteDesgloseStats = (q: Quote) => {
-    const norm = (s: any) => {
-      if (!s) return '';
-      return String(s)
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim();
-    };
-
-    const quoteOrders = ordenes.filter(o => isOrdenRelatedToQuote(o, q));
-    const quoteGastos = gastosProduccion.filter(g => isGastoRelatedToQuote(g, q));
-
-    const subsList: Array<{ sub: any; item: any; cat: any }> = [];
-    (q.categories || []).forEach(cat => {
-      (cat.items || []).forEach(it => {
-        (it.subItems || []).forEach(sub => {
-          subsList.push({ sub, item: it, cat });
-        });
-      });
-    });
-
-    const subOrdersMap: Record<string, Array<{ order: Orden; item: OrdenSubItem }>> = {};
-    const subGastosMap: Record<string, Array<{ gasto: GastoProduccion; item: GastoProduccionItem }>> = {};
-
-    subsList.forEach(s => {
-      const sId = String(s.sub.id || '');
-      subOrdersMap[sId] = [];
-      subGastosMap[sId] = [];
-    });
-
-    // 1. Match order items
-    quoteOrders.forEach(o => {
-      (o.items || []).forEach(oi => {
-        const oiId = String(oi.quoteSubItemId || '');
-        const oiName = norm(oi.name || oi.customDescription || '');
-        let matchedSubId: string | null = null;
-
-        if (oiId && oiId.includes(',')) {
-          // Si la orden fue consolidada de 2 o más sub-ítems
-          const ids = oiId.split(',').map(s => s.trim()).filter(Boolean);
-          ids.forEach(singleId => {
-            if (subOrdersMap[singleId]) {
-              subOrdersMap[singleId].push({ order: o, item: oi });
-            }
-          });
-        } else if (oiId && subOrdersMap[oiId]) {
-          matchedSubId = oiId;
-        } else {
-          // Priority 1: exact subitem name match
-          for (const s of subsList) {
-            const sName = norm(s.sub.name);
-            if (oiName && sName === oiName) {
-              matchedSubId = String(s.sub.id || '');
-              break;
-            }
-          }
-          // Priority 2: partial subitem name match (non-imprevisto)
-          if (!matchedSubId) {
-            for (const s of subsList) {
-              const sName = norm(s.sub.name);
-              if (!sName.includes('imprevist') && sName.length >= 4) {
-                if (sName.includes(oiName) || oiName.includes(sName)) {
-                  matchedSubId = String(s.sub.id || '');
-                  break;
-                }
-              }
-            }
-          }
-          // Priority 3: item name match (non-imprevisto)
-          if (!matchedSubId) {
-            for (const s of subsList) {
-              const itName = norm(s.item.name);
-              const sName = norm(s.sub.name);
-              if (!sName.includes('imprevist') && itName.length >= 4) {
-                if (itName.includes(oiName) || oiName.includes(itName)) {
-                  matchedSubId = String(s.sub.id || '');
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        if (matchedSubId && subOrdersMap[matchedSubId]) {
-          subOrdersMap[matchedSubId].push({ order: o, item: oi });
-        }
-      });
-    });
-
-    // 2. Match gastos items
-    quoteGastos.forEach(g => {
-      (g.items || []).forEach(gi => {
-        const giId = String(gi.quoteSubItemId || '');
-        const giName = norm(gi.name || (gi as any).descripcion || '');
-        let matchedSubId: string | null = null;
-
-        if (giId && subGastosMap[giId]) {
-          matchedSubId = giId;
-        } else {
-          for (const s of subsList) {
-            const sName = norm(s.sub.name);
-            if (giName && sName === giName) {
-              matchedSubId = String(s.sub.id || '');
-              break;
-            }
-          }
-          if (!matchedSubId) {
-            for (const s of subsList) {
-              const sName = norm(s.sub.name);
-              if (!sName.includes('imprevist') && sName.length >= 4) {
-                if (sName.includes(giName) || giName.includes(sName)) {
-                  matchedSubId = String(s.sub.id || '');
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        if (matchedSubId && subGastosMap[matchedSubId]) {
-          subGastosMap[matchedSubId].push({ gasto: g, item: gi });
-        }
-      });
-    });
-
-    // 3. Compute stats per subItem
-    const subStats: Record<string, { realCost: number; paid: number; orders: Array<{ order: any; item: any }>; gastos: Array<{ gasto: any; item: any }> }> = {};
-    subsList.forEach(s => {
-      const sId = String(s.sub.id || '');
-      const ordersForSub = subOrdersMap[sId] || [];
-      const gastosForSub = subGastosMap[sId] || [];
-
-      let realOrders = 0;
-      ordersForSub.forEach(x => {
-        const oi = x.item;
-        const oiId = String(oi.quoteSubItemId || '');
-        if (oiId.includes(',')) {
-          const ids = oiId.split(',').map(str => str.trim()).filter(Boolean);
-          const totalBudgetOfConsolidated = subsList
-            .filter(subObj => ids.includes(String(subObj.sub.id || '')))
-            .reduce((sum, subObj) => sum + ((Number(subObj.sub.quantity) || 1) * (Number(subObj.sub.dates) || 1) * (Number(subObj.sub.unitCost) || 0)), 0);
-
-          const myBudget = (Number(s.sub.quantity) || 1) * (Number(s.sub.dates) || 1) * (Number(s.sub.unitCost) || 0);
-          const ratio = totalBudgetOfConsolidated > 0 ? (myBudget / totalBudgetOfConsolidated) : (1 / Math.max(1, ids.length));
-          realOrders += (Number(oi.total) || 0) * ratio;
-        } else {
-          realOrders += (Number(oi.total) || 0);
-        }
-      });
-
-      const realGastos = gastosForSub.reduce((acc, x) => acc + (Number(x.item.monto) || 0), 0);
-      const realCost = realOrders + realGastos;
-
-      let paid = 0;
-      ordersForSub.forEach(x => {
-        const o = x.order;
-        const oi = x.item;
-        let oTotal = Number(o.total) || 0;
-        if (oTotal <= 0) {
-          oTotal = (o.items || []).reduce((acc, it) => acc + (Number(it.total) || 0), 0) || 1;
-        }
-        const oPagos = pagos
-          .filter(p => p.ordenId === o.id && p.estado === 'Pagado')
-          .reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
-
-        if (oTotal > 0 && oPagos > 0) {
-          const oiId = String(oi.quoteSubItemId || '');
-          let itemEffectiveTotal = Number(oi.total) || 0;
-          if (oiId.includes(',')) {
-            const ids = oiId.split(',').map(str => str.trim()).filter(Boolean);
-            const totalBudgetOfConsolidated = subsList
-              .filter(subObj => ids.includes(String(subObj.sub.id || '')))
-              .reduce((sum, subObj) => sum + ((Number(subObj.sub.quantity) || 1) * (Number(subObj.sub.dates) || 1) * (Number(subObj.sub.unitCost) || 0)), 0);
-
-            const myBudget = (Number(s.sub.quantity) || 1) * (Number(s.sub.dates) || 1) * (Number(s.sub.unitCost) || 0);
-            const ratio = totalBudgetOfConsolidated > 0 ? (myBudget / totalBudgetOfConsolidated) : (1 / Math.max(1, ids.length));
-            itemEffectiveTotal = (Number(oi.total) || 0) * ratio;
-          }
-          paid += (itemEffectiveTotal / oTotal) * oPagos;
-        }
-      });
-
-      subStats[sId] = { realCost, paid, orders: ordersForSub, gastos: gastosForSub };
-    });
-
-    // 4. Compute stats per item
-    const itemStats: Record<string, { realCost: number; paid: number }> = {};
-    (q.categories || []).forEach(cat => {
-      (cat.items || []).forEach(it => {
-        const itId = String(it.id || '');
-        let itemRealCost = 0;
-        let itemPaid = 0;
-        (it.subItems || []).forEach(sub => {
-          const stats = subStats[String(sub.id || '')] || { realCost: 0, paid: 0 };
-          itemRealCost += stats.realCost;
-          itemPaid += stats.paid;
-        });
-        itemStats[itId] = { realCost: itemRealCost, paid: itemPaid };
-      });
-    });
-
-    return { subStats, itemStats };
-  };
+  const getQuoteDesgloseStats = (q: Quote) =>
+    computeQuoteDesgloseStats(q, ordenes, pagos, gastosProduccion, proveedores, quotes);
 
   // Quotes elegibles para liquidaciones (estrictamente aprobadas o liquidadas)
-  const isAprobadaOLiquidable = (q: Quote) => {
-    if (!q.projectId) return false;
-    const qStatus = (q.status || '').toLowerCase().trim();
-
-    // Jamás incluir cotizaciones rechazadas, borradores, en creación o en revisión
-    if (
-      qStatus.includes('rechaz') ||
-      qStatus.includes('borrador') ||
-      qStatus.includes('creaci') ||
-      qStatus.includes('enviad') ||
-      qStatus.includes('revisi') ||
-      qStatus.includes('pendient')
-    ) {
-      return false;
-    }
-
-    return qStatus.includes('aprob') || qStatus.includes('liquid');
-  };
-
-  const liquidablesTotal = quotes.filter(isAprobadaOLiquidable);
+  const liquidablesTotal = quotes.filter(isQuoteEligibleForLiquidacion);
   const totalLiquidacionesCount = liquidablesTotal.length;
   const enProcesoCount = liquidablesTotal.filter(q => getEstadoLiquidacion(q, q.projectId) === 'En Proceso').length;
   const liquidadoCount = liquidablesTotal.filter(q => getEstadoLiquidacion(q, q.projectId) === 'Liquidado').length;
@@ -626,10 +319,7 @@ export const LiquidacionesView: React.FC = () => {
                                   {formatCurrency(metrics.gastoReal)}
                                 </td>
                                 <td className="td-custom text-right font-bold font-tabular" style={{ color: 'var(--success)' }}>
-                                  {formatCurrency(
-                                    pagos.filter(p => (p.quoteId === q.id || (p.ordenId && ordenes.some(o => o.id === p.ordenId && (o.quoteId === q.id || (q.projectId && o.proyectoId === q.projectId))))) && p.estado === 'Pagado')
-                                      .reduce((acc, p) => acc + p.monto, 0)
-                                  )}
+                                  {formatCurrency(metrics.pagadoTotal)}
                                 </td>
                                 <td className="td-custom text-center sticky-col-right" style={{ position: 'sticky', right: 0, zIndex: 10, backgroundColor: 'inherit' }} onClick={(e) => e.stopPropagation()}>
                                   <button
@@ -675,9 +365,7 @@ export const LiquidacionesView: React.FC = () => {
                                 const isAhorro = totalDiferencia >= 0;
                                 const pctAhorro = totalPresupuesto > 0 ? (Math.abs(totalDiferencia) / totalPresupuesto) * 100 : 0;
                                 
-                                const totalPagado = pagos
-                                  .filter(p => (p.quoteId === q.id || (p.ordenId && ordenes.some(o => o.id === p.ordenId && isOrdenRelatedToQuote(o, q)))) && p.estado === 'Pagado')
-                                  .reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
+                                const totalPagado = metrics.pagadoTotal;
                                 const pctPagado = totalGastoReal > 0 ? Math.min(100, Math.round((totalPagado / totalGastoReal) * 100)) : 0;
 
                                 // Imprevistos
@@ -1076,30 +764,32 @@ export const LiquidacionesView: React.FC = () => {
 
                                                                       {/* 2. Proveedor & Documento */}
                                                                       <td style={{ padding: '6px 8px' }}>
-                                                                        {isImprevisto ? (
-                                                                          <span style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
-                                                                            Fondo de reserva del ítem
-                                                                          </span>
-                                                                        ) : attachedOrders.length > 0 ? (
+                                                                        {attachedOrders.length > 0 ? (
                                                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                                            {attachedOrders.map(({ order }, oIdx) => {
+                                                                            {attachedOrders.map(({ order, allocatedCost }, oIdx) => {
                                                                               const prov = proveedores.find(p => p.id === order.proveedorId);
                                                                               const provLabel = prov?.nombre || prov?.razonSocial || 'Proveedor';
                                                                               return (
-                                                                                <div key={order.id || oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                                                                                <div key={`${order.id}-${oIdx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
                                                                                   <span style={{
                                                                                     padding: '1px 5px',
                                                                                     borderRadius: '4px',
                                                                                     background: order.tipoOrden === 'Servicio' ? '#eff6ff' : '#faf5ff',
                                                                                     color: order.tipoOrden === 'Servicio' ? '#1d4ed8' : '#7e22ce',
                                                                                     fontWeight: 600,
-                                                                                    fontSize: '10px'
+                                                                                    fontSize: '10px',
+                                                                                    flexShrink: 0
                                                                                   }}>
                                                                                     {order.id}
                                                                                   </span>
-                                                                                  <span style={{ color: '#475569', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }} title={provLabel}>
+                                                                                  <span style={{ color: '#475569', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }} title={provLabel}>
                                                                                     {provLabel}
                                                                                   </span>
+                                                                                  {attachedOrders.length > 1 && (
+                                                                                    <span style={{ color: 'var(--accent-primary)', fontWeight: 600, fontSize: '10px', flexShrink: 0 }}>
+                                                                                      ({formatCurrency(allocatedCost)})
+                                                                                    </span>
+                                                                                  )}
                                                                                 </div>
                                                                               );
                                                                             })}
@@ -1112,6 +802,10 @@ export const LiquidacionesView: React.FC = () => {
                                                                               </span>
                                                                             ))}
                                                                           </div>
+                                                                        ) : isImprevisto ? (
+                                                                          <span style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
+                                                                            Fondo de reserva del ítem
+                                                                          </span>
                                                                         ) : (
                                                                           <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
                                                                             Sin orden emitida
@@ -1175,6 +869,112 @@ export const LiquidacionesView: React.FC = () => {
                                             );
                                           })}
                                         </div>
+
+                                        {/* 4. ÓRDENES Y GASTOS SIN SUB-ÍTEM DIRECTO (CONCILIACIÓN COMPLETA) */}
+                                        {(desglose.unmatchedOrders.length > 0 || desglose.unmatchedGastos.length > 0) && (
+                                          <div style={{
+                                            marginTop: '14px',
+                                            background: '#ffffff',
+                                            border: '1px solid #fcd34d',
+                                            borderRadius: '10px',
+                                            overflow: 'hidden',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                                          }}>
+                                            <div style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between',
+                                              padding: '10px 18px',
+                                              background: '#fffbeb',
+                                              borderBottom: '1px solid #fde68a',
+                                              flexWrap: 'wrap',
+                                              gap: '8px'
+                                            }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <AlertCircle size={15} color="#b45309" />
+                                                <span style={{ fontSize: '13px', fontWeight: 800, color: '#92400e', textTransform: 'uppercase' }}>
+                                                  Órdenes / Gastos Sin Sub-ítem Directo
+                                                </span>
+                                                <span style={{ fontSize: '11px', color: '#92400e', background: '#fef3c7', padding: '1px 8px', borderRadius: '10px', fontWeight: 600 }}>
+                                                  {desglose.unmatchedOrders.length + desglose.unmatchedGastos.length} registro(s)
+                                                </span>
+                                              </div>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px' }}>
+                                                <span style={{ color: '#78350f' }}>
+                                                  Real adicional: <strong style={{ color: 'var(--accent-primary)' }}>{formatCurrency(desglose.unmatchedRealCost)}</strong>
+                                                </span>
+                                                <span style={{ color: '#78350f' }}>
+                                                  Pagado: <strong style={{ color: '#047857' }}>{formatCurrency(desglose.unmatchedPaid)}</strong>
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div style={{ padding: '8px 14px', fontSize: '11px', color: '#78350f', background: '#fefce8', borderBottom: '1px solid #fef3c7' }}>
+                                              Órdenes o gastos vinculados a esta cotización cuyos sub-ítems fueron reemplazados al editar la cotización o ingresados con distinto concepto. Se incluyen en el Gasto Real total.
+                                            </div>
+                                            <div style={{ padding: '8px 12px', overflowX: 'auto' }}>
+                                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                                                <thead>
+                                                  <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '11px', fontWeight: 600 }}>
+                                                    <th style={{ textAlign: 'left', padding: '6px 8px', width: '42%' }}>CONCEPTO EN ORDEN / GASTO</th>
+                                                    <th style={{ textAlign: 'left', padding: '6px 8px', width: '28%' }}>PROVEEDOR & DOCUMENTO</th>
+                                                    <th style={{ textAlign: 'right', padding: '6px 8px', width: '15%' }}>GASTO REAL</th>
+                                                    <th style={{ textAlign: 'right', padding: '6px 8px', width: '15%' }}>PAGADO</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {desglose.unmatchedOrders.map((u, uIdx) => {
+                                                    const prov = proveedores.find(p => p.id === u.order.proveedorId);
+                                                    const provLabel = prov?.nombre || prov?.razonSocial || 'Proveedor';
+                                                    return (
+                                                      <tr key={`${u.order.id}-${u.item.id || uIdx}`} style={{ borderBottom: '1px solid #f1f5f9', height: '36px' }}>
+                                                        <td style={{ padding: '6px 8px', fontWeight: 500, color: '#1e293b' }}>
+                                                          {u.item.name || u.item.customDescription || 'Ítem de orden'}
+                                                        </td>
+                                                        <td style={{ padding: '6px 8px' }}>
+                                                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+                                                            <span style={{
+                                                              padding: '1px 5px',
+                                                              borderRadius: '4px',
+                                                              background: u.order.tipoOrden === 'Servicio' ? '#eff6ff' : '#faf5ff',
+                                                              color: u.order.tipoOrden === 'Servicio' ? '#1d4ed8' : '#7e22ce',
+                                                              fontWeight: 600,
+                                                              fontSize: '10px'
+                                                            }}>
+                                                              {u.order.id}
+                                                            </span>
+                                                            <span style={{ color: '#475569', fontWeight: 500 }}>{provLabel}</span>
+                                                          </div>
+                                                        </td>
+                                                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                                                          {formatCurrency(u.realCost)}
+                                                        </td>
+                                                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: u.paid > 0 ? '#047857' : '#94a3b8' }}>
+                                                          {u.paid > 0 ? formatCurrency(u.paid) : '-'}
+                                                        </td>
+                                                      </tr>
+                                                    );
+                                                  })}
+                                                  {desglose.unmatchedGastos.map((ug, ugIdx) => (
+                                                    <tr key={`${ug.gasto.id}-${ug.item.id || ugIdx}`} style={{ borderBottom: '1px solid #f1f5f9', height: '36px' }}>
+                                                      <td style={{ padding: '6px 8px', fontWeight: 500, color: '#1e293b' }}>
+                                                        {ug.item.name || 'Gasto de producción'}
+                                                      </td>
+                                                      <td style={{ padding: '6px 8px' }}>
+                                                        <span style={{ fontSize: '11px', color: '#b45309', background: '#fffbeb', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                                          Caja Chica / Gasto: {ug.gasto.numeroComprobante || ug.gasto.id}
+                                                        </span>
+                                                      </td>
+                                                      <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                                                        {formatCurrency(ug.realCost)}
+                                                      </td>
+                                                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8' }}>-</td>
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          </div>
+                                        )}
 
                                       </div>
                                     </td>
@@ -1432,13 +1232,14 @@ export const LiquidacionesView: React.FC = () => {
                 </div>
               ) : (
                 sortedQuotes.map(q => {
-                  const metrics = getQuoteTotals(q);
+                  const metrics = calculateQuoteMetrics(q);
                   const estado = getEstadoLiquidacion(q, q.projectId);
                   const isLiquidado = estado === 'Liquidado';
-                  const clientName = q.client || getClienteName(q.projectId || '');
+                  const clientName = getClientName(q.client || '');
                   const projectName = getProjectName(q.projectId || '');
                   const quoteTitle = (q.requirement || projectName || '').trim();
                   const isExpanded = !!expandedQuotes[q.id];
+                  const desglose = isExpanded ? getQuoteDesgloseStats(q) : null;
 
                   return (
                     <div 
@@ -1452,10 +1253,10 @@ export const LiquidacionesView: React.FC = () => {
                         <div style={{ minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span className="mobile-data-card-title font-mono" style={{ color: 'var(--accent-primary)', fontSize: '13px' }}>
-                              {formatId(q.id)}
+                              V{q.version || 1}
                             </span>
                             <span style={{ fontSize: '11px', background: 'rgba(0,0,0,0.05)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                              v{q.version || 1}
+                              {q.date || '-'}
                             </span>
                           </div>
                           <div className="mobile-data-card-subtitle">
@@ -1513,31 +1314,34 @@ export const LiquidacionesView: React.FC = () => {
                         <button 
                           type="button" 
                           className={`mobile-action-pill ${isExpanded ? 'primary' : ''}`}
-                          onClick={() => toggleQuote(q.id)}
+                          onClick={() => toggleExpand(q.id)}
+                          style={{ minHeight: '44px' }}
                           title="Ver Desglose de Gastos y Órdenes"
                         >
-                          {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           <span>{isExpanded ? 'Ocultar Desglose' : 'Ver Desglose'}</span>
                         </button>
                         <button 
                           type="button" 
                           className="mobile-action-pill"
+                          disabled={updatingId === q.id}
                           onClick={(e) => handleToggleEstado(q, isLiquidado ? 'En Proceso' : 'Liquidado', e)}
                           style={{
+                            minHeight: '44px',
                             color: isLiquidado ? '#4b5563' : '#10b981',
                             background: isLiquidado ? 'rgba(0,0,0,0.05)' : 'rgba(16, 185, 129, 0.08)'
                           }}
                         >
-                          <CheckCircle size={13} />
+                          <CheckCircle size={14} />
                           <span>{isLiquidado ? 'Reabrir' : 'Liquidar'}</span>
                         </button>
                       </div>
 
                       {/* Mobile Expanded Desglose Summary */}
-                      {isExpanded && (
-                        <div className="mobile-card-expanded-box">
+                      {isExpanded && desglose && (
+                        <div className="mobile-card-expanded-box" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
-                            Auditoría Financiera
+                            Auditoría Financiera y Órdenes
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                             <span>Diferencia vs Ppto:</span>
@@ -1549,9 +1353,35 @@ export const LiquidacionesView: React.FC = () => {
                             <span>% Pagado Proveedores:</span>
                             <strong>{metrics.gastoReal > 0 ? Math.min(100, Math.round((metrics.pagadoTotal / metrics.gastoReal) * 100)) : 0}%</strong>
                           </div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            Categorías: {q.categories.map(c => c.name).join(', ')}
+                          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {(q.categories || []).map((cat, cIdx) => {
+                              const catPpto = (cat.items || []).reduce((acc, it) => acc + (it.subItems || []).reduce((a2, sub) => a2 + sub.unitCost * sub.quantity * sub.dates, 0), 0);
+                              const catReal = (cat.items || []).reduce((acc, it) => acc + (desglose.itemStats[String(it.id || '')]?.realCost || 0), 0);
+                              return (
+                                <div key={cat.id || cIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', gap: '8px' }}>
+                                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>📁 {cat.name}</span>
+                                  <span style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                                    Real: <strong style={{ color: 'var(--accent-primary)' }}>{formatCurrency(catReal)}</strong> / {formatCurrency(catPpto)}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
+                          {desglose.unmatchedOrders.length > 0 && (
+                            <div style={{ borderTop: '1px solid #fde68a', paddingTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#92400e' }}>
+                                ⚠️ Sin sub-ítem directo ({desglose.unmatchedOrders.length}):
+                              </span>
+                              {desglose.unmatchedOrders.map((u, uIdx) => (
+                                <div key={`${u.order.id}-${uIdx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', gap: '6px' }}>
+                                  <span style={{ color: '#78350f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {u.order.id}: {u.item.name}
+                                  </span>
+                                  <strong style={{ color: 'var(--accent-primary)', whiteSpace: 'nowrap' }}>{formatCurrency(u.realCost)}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

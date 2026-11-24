@@ -16,6 +16,7 @@ import { MobileItemFormModal } from './MobileItemFormModal';
 import { SearchableProjectSelect } from './SearchableProjectSelect';
 import { buildQuoteClientUrl } from '../utils/clientLinks';
 import { API_URL } from '../utils/apiUrl';
+import { preserveQuoteNodeIds } from '../utils/liquidacionHelpers';
 import toast from 'react-hot-toast';
 
 export const PAYMENT_CONDITIONS_OPTIONS = [
@@ -710,7 +711,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
         }))
       }));
       if (mode === 'replace') {
-        newQuote.categories = mapped;
+        newQuote.categories = preserveQuoteNodeIds(prev.categories || [], mapped);
         toast.success(`Cotización reemplazada: ${mapped.length} categoría${mapped.length !== 1 ? 's' : ''} importada${mapped.length !== 1 ? 's' : ''}`);
       } else {
         newQuote.categories = [...newQuote.categories, ...mapped];
@@ -753,7 +754,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
       }));
 
       if (mode === 'replace') {
-        newQuote.categories = mapped;
+        newQuote.categories = preserveQuoteNodeIds(prev.categories || [], mapped);
         toast.success(`Cotización actualizada: ${mapped.length} categoría(s) importada(s) desde Excel`);
       } else {
         newQuote.categories = [...(newQuote.categories || []), ...mapped];

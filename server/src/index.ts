@@ -66,6 +66,39 @@ app.use('/api', apiLimiter); // Apply rate limiter to all /api routes
 // --- UTILIDADES ---
 const cleanFolderName = (name: string) => name.replace(/[^a-z0-9]/gi, '_').substring(0, 50);
 
+/**
+ * Evita duplicar ítems idénticos en una misma orden cuando la suma de ítems supera al total real.
+ */
+const dedupeIncomingOrderItems = (rawItems: any[], orderTotal: number) => {
+  if (!Array.isArray(rawItems) || rawItems.length <= 1) return Array.isArray(rawItems) ? rawItems : [];
+  const rawSum = rawItems.reduce((sum, it) => sum + (Number(it?.total) || 0), 0);
+  if (orderTotal <= 0 || rawSum <= orderTotal + 0.05) return rawItems;
+
+  const seen = new Set<string>();
+  return rawItems.filter((it: any) => {
+    const key = [
+      String(it?.quoteSubItemId || '').trim(),
+      String(it?.customDescription || it?.name || '').trim().toLowerCase(),
+      Number(it?.quantity) || 0,
+      Number(it?.total) || 0
+    ].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const mapOrdenItemsForCreate = (rawItems: any[], orderTotal: number) =>
+  dedupeIncomingOrderItems(rawItems, orderTotal).map((it: any) => ({
+    quoteSubItemId: it.quoteSubItemId,
+    name: it.customDescription || it.name || 'Ítem',
+    quantity: Number(it.quantity) || 0,
+    unitCost: Number(it.unitCost) || 0,
+    total: Number(it.total) || 0,
+    customDescription: it.customDescription || it.name || undefined,
+    costPercentage: it.costPercentage != null ? Number(it.costPercentage) : undefined,
+  }));
+
 const isReciboPorHonorariosDoc = (tipoDocumento?: string | null): boolean => {
   const normalized = (tipoDocumento || '').trim().toLowerCase();
   return normalized.includes('honorario') || normalized === 'rxh' || normalized === 'rhe';
@@ -2477,15 +2510,7 @@ app.post('/api/ordenes', authenticateToken, upload.single('cotizacionFile'), asy
       data: {
         ...cleanOrdenData,
         items: {
-          create: (items || []).map((it: any) => ({
-            quoteSubItemId: it.quoteSubItemId,
-            name: it.customDescription || it.name || 'Ítem',
-            quantity: Number(it.quantity) || 0,
-            unitCost: Number(it.unitCost) || 0,
-            total: Number(it.total) || 0,
-            customDescription: it.customDescription || it.name || undefined,
-            costPercentage: it.costPercentage != null ? Number(it.costPercentage) : undefined,
-          }))
+          create: mapOrdenItemsForCreate(items || [], ordTotal)
         }
       },
       include: { items: true, cliente: true, proyecto: true, proveedor: true }
@@ -2587,15 +2612,7 @@ app.post('/api/ordenes/batch', authenticateToken, async (req, res) => {
         data: {
           ...cleanOrdenData,
           items: {
-            create: (items || []).map((it: any) => ({
-              quoteSubItemId: it.quoteSubItemId,
-              name: it.customDescription || it.name || 'Ítem',
-              quantity: Number(it.quantity) || 0,
-              unitCost: Number(it.unitCost) || 0,
-              total: Number(it.total) || 0,
-              customDescription: it.customDescription || it.name || undefined,
-              costPercentage: it.costPercentage != null ? Number(it.costPercentage) : undefined,
-            }))
+            create: mapOrdenItemsForCreate(items || [], Number(data.total) || 0)
           }
         },
         include: { items: true, cliente: true, proyecto: true, proveedor: true }
@@ -2701,15 +2718,7 @@ app.put('/api/ordenes/:id', authenticateToken, async (req, res) => {
     if (items && Array.isArray(items)) {
       updateData.items = {
         deleteMany: {},
-        create: items.map((it: any) => ({
-          quoteSubItemId: it.quoteSubItemId,
-          name: it.customDescription || it.name || 'Ítem',
-          quantity: Number(it.quantity) || 0,
-          unitCost: Number(it.unitCost) || 0,
-          total: Number(it.total) || 0,
-          customDescription: it.customDescription || it.name || undefined,
-          costPercentage: it.costPercentage != null ? Number(it.costPercentage) : undefined,
-        }))
+        create: mapOrdenItemsForCreate(items, targetTotal)
       };
     }
 

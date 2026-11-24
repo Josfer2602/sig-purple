@@ -7,6 +7,7 @@ import {
 import { useGlobalContext } from '../context/GlobalContext';
 import { SearchableProveedorSelect } from './SearchableProveedorSelect';
 import { generateItemsTitle } from '../utils/orderTitleHelper';
+import { dedupeOrderItems } from '../utils/liquidacionHelpers';
 import type { Orden, OrdenSubItem, Proveedor } from '../types/models';
 import toast from 'react-hot-toast';
 
@@ -243,14 +244,36 @@ export const CreateOrdenesMasivasModal: React.FC<Props> = ({
     const orderedAmountsMap: Record<string, number> = {};
     const orderedCodesMap: Record<string, string[]> = {};
 
+    const subBudgetMap: Record<string, number> = {};
+    activeQuotesList.forEach(q => {
+      (q.categories || []).forEach(c => {
+        (c.items || []).forEach(it => {
+          (it.subItems || []).forEach(s => {
+            if (s.id) {
+              subBudgetMap[s.id] = (Number(s.quantity) || 1) * (Number(s.dates) || 1) * (Number(s.unitCost) || 0);
+            }
+          });
+        });
+      });
+    });
+
     existingOrders.forEach(ord => {
-      (ord.items || []).forEach(it => {
-        if (it.quoteSubItemId) {
-          orderedAmountsMap[it.quoteSubItemId] = (orderedAmountsMap[it.quoteSubItemId] || 0) + (it.total || 0);
-          if (!orderedCodesMap[it.quoteSubItemId]) orderedCodesMap[it.quoteSubItemId] = [];
-          if (!orderedCodesMap[it.quoteSubItemId].includes(ord.id)) {
-            orderedCodesMap[it.quoteSubItemId].push(ord.id);
-          }
+      dedupeOrderItems(ord).forEach(it => {
+        if (!it.quoteSubItemId) return;
+        const rawIds = String(it.quoteSubItemId).split(',').map(s => s.trim()).filter(Boolean);
+        if (rawIds.length <= 1) {
+          const singleId = rawIds[0];
+          orderedAmountsMap[singleId] = (orderedAmountsMap[singleId] || 0) + (it.total || 0);
+          if (!orderedCodesMap[singleId]) orderedCodesMap[singleId] = [];
+          if (!orderedCodesMap[singleId].includes(ord.id)) orderedCodesMap[singleId].push(ord.id);
+        } else {
+          const totalGroupBudget = rawIds.reduce((sum, sid) => sum + (subBudgetMap[sid] || 0), 0);
+          rawIds.forEach(singleId => {
+            const ratio = totalGroupBudget > 0 ? (subBudgetMap[singleId] || 0) / totalGroupBudget : 1 / rawIds.length;
+            orderedAmountsMap[singleId] = (orderedAmountsMap[singleId] || 0) + (it.total || 0) * ratio;
+            if (!orderedCodesMap[singleId]) orderedCodesMap[singleId] = [];
+            if (!orderedCodesMap[singleId].includes(ord.id)) orderedCodesMap[singleId].push(ord.id);
+          });
         }
       });
     });

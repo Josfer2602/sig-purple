@@ -19,6 +19,7 @@ import * as XLSX from 'xlsx';
 import { SkeletonTable } from '../components/SkeletonTable';
 import { useIsMobile } from '../hooks/useIsMobile';
 import type { Proyecto, Orden } from '../types/models';
+import { getOrderCostSinIgv as computeOrderCostSinIgv } from '../utils/liquidacionHelpers';
 
 interface Props {
   onNavigate?: (module: string, itemId?: string) => void;
@@ -165,15 +166,7 @@ export const RentabilidadProyectoView: React.FC<Props> = ({ onNavigate }) => {
   };
 
   // Costo neto de orden de compra o servicio sin IGV
-  const getOrderCostSinIgv = (o: Orden) => {
-    if (o.items && o.items.length > 0) {
-      const itemsSubtotal = o.items.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
-      if (itemsSubtotal > 0) return itemsSubtotal;
-    }
-    const prov = proveedores.find(pr => pr.id === o.proveedorId);
-    const tieneIgv = prov?.tipoDocumento === 'Factura';
-    return tieneIgv ? (Number(o.total) || 0) / 1.18 : (Number(o.total) || 0);
-  };
+  const getOrderCostSinIgv = (o: Orden) => computeOrderCostSinIgv(o, proveedores);
 
   // Calculated Project Metrics - ÚNICAMENTE PROYECTOS APROBADOS
   const projectMetrics = useMemo(() => {
