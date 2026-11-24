@@ -607,7 +607,7 @@ async function generateContentWithTimeout(
 }
 
 const getGenAI = (): GoogleGenAI | null => {
-  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
   if (!apiKey || apiKey === 'TU_CLAVE_AQUI') {
     return null;
   }

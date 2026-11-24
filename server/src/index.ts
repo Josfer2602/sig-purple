@@ -43,7 +43,8 @@ import {
 } from './services/calendarService';
 
 const prisma = new PrismaClient();
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const rawGeminiKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+const ai = new GoogleGenAI({ apiKey: rawGeminiKey });
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
@@ -3635,16 +3636,18 @@ Devuelve ÚNICAMENTE un JSON con esta estructura exacta (sin markdown, sin expli
       }
     }
 
-    if (!responseText) {
-      throw lastError || new Error('No se pudo obtener respuesta del modelo de IA');
+    let extracted: any = {};
+    if (responseText) {
+      try {
+        let cleanJson = responseText.trim();
+        if (cleanJson.startsWith('```')) {
+          cleanJson = cleanJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+        }
+        extracted = JSON.parse(cleanJson);
+      } catch (parseErr) {
+        console.warn('No se pudo parsear el JSON de la IA en analyze-comprobante:', parseErr);
+      }
     }
-
-    let cleanJson = responseText.trim();
-    if (cleanJson.startsWith('```')) {
-      cleanJson = cleanJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-    }
-
-    const extracted = JSON.parse(cleanJson);
 
     // Normalizar RUC
     const rawRuc = extracted.rucEmisor ? String(extracted.rucEmisor).replace(/\D/g, '') : '';
@@ -3713,6 +3716,7 @@ Devuelve ÚNICAMENTE un JSON con esta estructura exacta (sin markdown, sin expli
 
     res.json({
       success: true,
+      warning: responseText ? undefined : 'No se pudo procesar con IA automáticamente, pero el archivo se adjuntó correctamente.',
       data: {
         ...extracted,
         montoTotal,
