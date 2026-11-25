@@ -553,30 +553,29 @@ export const OFFICIAL_PURPLE_BRIEF_TEMPLATE: BriefSeccionItem[] = BRIEF_TEMPLATE
 // MOTOR GEMINI VERIFICADO & HELPERS TRANSVERSALES
 // =========================================================================
 const MODELS_FAST_JSON = [
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
   'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3.6-flash',
   'gemini-3.5-flash-lite',
-  'gemini-3.7-flash',
-  'gemini-3.8-flash'
+  'gemini-flash-lite-latest'
 ];
 
 const MODELS_DEEP_QUOTE = [
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
   'gemini-3-flash-preview',
-  'gemini-3.7-flash',
-  'gemini-3.8-flash'
+  'gemini-3.6-flash',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-lite-latest'
 ];
 
 const AUDIO_STT_MODELS = [
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
   'gemini-3-flash-preview',
-  'gemini-3.5-flash-lite'
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite-preview'
 ];
 
-const GEMINI_ATTEMPT_TIMEOUT_MS = 35000;
+const GEMINI_ATTEMPT_TIMEOUT_MS = 20000;
 
 async function generateContentWithTimeout(
   ai: GoogleGenAI,

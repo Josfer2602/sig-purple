@@ -53,7 +53,10 @@ export const ChatBot: React.FC = () => {
       setHistory([...newHistory, { role: 'assistant', content: data.response }]);
     } catch (error: any) {
       console.error('Chat error:', error);
-      setHistory([...newHistory, { role: 'assistant', content: 'Lo siento, hubo un problema al procesar tu solicitud. Por favor intenta nuevamente.' }]);
+      const detail = typeof error?.message === 'string' && error.message && error.message !== 'Failed to fetch'
+        ? error.message
+        : 'Lo siento, hubo un problema al procesar tu solicitud. Por favor intenta nuevamente.';
+      setHistory([...newHistory, { role: 'assistant', content: detail }]);
     } finally {
       setLoading(false);
     }

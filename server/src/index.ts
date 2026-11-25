@@ -52,6 +52,51 @@ import {
 const prisma = new PrismaClient();
 const rawGeminiKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 const ai = new GoogleGenAI({ apiKey: rawGeminiKey });
+
+const GEMINI_FAST_MODELS = [
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-lite-latest'
+];
+
+const isValidGeminiKeyConfigured = (): boolean =>
+  Boolean(rawGeminiKey && rawGeminiKey !== 'TU_CLAVE_AQUI' && rawGeminiKey.length >= 16);
+
+const GEMINI_MISSING_KEY_ERROR =
+  'La API Key de Gemini no está configurada o es inválida en el servidor. Configura una GEMINI_API_KEY válida en las variables de entorno del backend.';
+
+async function generateTextWithGeminiFallback(params: {
+  contents: any;
+  config?: Record<string, any>;
+  timeoutMs?: number;
+  logLabel: string;
+}): Promise<string> {
+  let lastError: any = null;
+  const timeoutMs = params.timeoutMs ?? 20000;
+
+  for (const modelName of GEMINI_FAST_MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: params.contents,
+        config: {
+          ...(params.config || {}),
+          abortSignal: AbortSignal.timeout(timeoutMs)
+        }
+      });
+      if (response?.text) {
+        return response.text;
+      }
+    } catch (err: any) {
+      console.error(`[Gemini:${params.logLabel}] Error con ${modelName}:`, err?.message || err);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error(`No se pudo obtener respuesta de Gemini (${params.logLabel}).`);
+}
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
@@ -3960,39 +4005,31 @@ Devuelve ÚNICAMENTE un JSON con esta estructura exacta (sin markdown, sin expli
   "descripcion": "..."
 }`;
 
-    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'];
     let responseText: string | null = null;
-    let lastError: any = null;
 
-    if (!rawGeminiKey || !rawGeminiKey.startsWith('AIzaSy')) {
-      console.warn('[Gemini] GEMINI_API_KEY no configurada o inválida (debe empezar con AIzaSy). Se omite análisis de IA.');
+    if (!isValidGeminiKeyConfigured()) {
+      console.warn('[Gemini] GEMINI_API_KEY no configurada o inválida. Se omite análisis de IA.');
     } else {
-      for (const modelName of modelsToTry) {
-        try {
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: [
-              {
-                inlineData: {
-                  mimeType: actualMime,
-                  data: base64Data
-                }
-              },
-              prompt
-            ],
-            config: {
-              temperature: 0.1,
-              responseMimeType: 'application/json'
-            }
-          });
-          if (response && response.text) {
-            responseText = response.text;
-            break;
+      try {
+        responseText = await generateTextWithGeminiFallback({
+          logLabel: 'analyze-comprobante',
+          timeoutMs: 20000,
+          contents: [
+            {
+              inlineData: {
+                mimeType: actualMime,
+                data: base64Data
+              }
+            },
+            prompt
+          ],
+          config: {
+            temperature: 0.1,
+            responseMimeType: 'application/json'
           }
-        } catch (err: any) {
-          console.error(`Error analizando comprobante con ${modelName}:`, err.message);
-          lastError = err;
-        }
+        });
+      } catch {
+        // Fallback silencioso a parser de archivo / respuesta parcial si todos los modelos fallan
       }
     }
 
@@ -4733,35 +4770,19 @@ Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta (sin mark
   "notes": "Breve resumen ejecutivo de la cotización detectada"
 }`;
 
-    if (!rawGeminiKey || !rawGeminiKey.startsWith('AIzaSy')) {
-      return res.status(400).json({ error: 'La API Key de Gemini no está configurada o es inválida en el servidor. Configura GEMINI_API_KEY en Render con una clave válida de Google AI Studio (que inicie con AIzaSy).' });
+    if (!isValidGeminiKeyConfigured()) {
+      return res.status(400).json({ error: GEMINI_MISSING_KEY_ERROR });
     }
 
-    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-flash-lite-latest'];
-    let responseText = null;
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            temperature: 0.2,
-            responseMimeType: 'application/json',
-          }
-        });
-        responseText = response.text || '';
-        break;
-      } catch (err: any) {
-        console.error(`Quote Parse Error con ${modelName}:`, err.message);
-        lastError = err;
+    const responseText = await generateTextWithGeminiFallback({
+      logLabel: 'parse-text-ai',
+      timeoutMs: 25000,
+      contents: prompt,
+      config: {
+        temperature: 0.2,
+        responseMimeType: 'application/json'
       }
-    }
-
-    if (!responseText) {
-      throw lastError;
-    }
+    });
 
     const rawText = responseText;
     // Strip any accidental markdown code fences
@@ -5543,31 +5564,15 @@ Instrucciones Clave:
 
     contents.push({ role: 'user', parts: [{ text: message }] });
 
-    if (!rawGeminiKey || !rawGeminiKey.startsWith('AIzaSy')) {
-      return res.status(400).json({ error: 'La API Key de Gemini no está configurada o es inválida en el servidor. Configura GEMINI_API_KEY en Render con una clave válida de Google AI Studio (que inicie con AIzaSy).' });
+    if (!isValidGeminiKeyConfigured()) {
+      return res.status(400).json({ error: GEMINI_MISSING_KEY_ERROR });
     }
 
-    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-3.5-flash'];
-    let responseText = null;
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: contents,
-        });
-        responseText = response.text;
-        break; // Success!
-      } catch (err: any) {
-        console.error(`Chat API Error con ${modelName}:`, err.message);
-        lastError = err;
-      }
-    }
-
-    if (!responseText) {
-      throw lastError;
-    }
+    const responseText = await generateTextWithGeminiFallback({
+      logLabel: 'chat',
+      timeoutMs: 25000,
+      contents
+    });
 
     res.json({ response: responseText });
   } catch (error: any) {
