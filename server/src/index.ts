@@ -3314,6 +3314,57 @@ function generateItemsTitle(items?: { name?: string | null; customDescription?: 
   return `${names[0]}, ${names[1]} y ${remainder} ítem${remainder > 1 ? 's' : ''} más`;
 }
 
+const MIN_VALID_PDF_BYTES = 12000;
+
+function isValidPdfBuffer(buf: Buffer | null | undefined): boolean {
+  return Boolean(buf && buf.length >= MIN_VALID_PDF_BYTES && buf.subarray(0, 5).toString('ascii') === '%PDF-');
+}
+
+async function resolveDocumentPdfForEmail(params: {
+  label: string;
+  localPath: string | null;
+  driveFileId?: string | null;
+  printUrl: string;
+  prefix: string;
+  req: any;
+}): Promise<{ buffer: Buffer | null; generatedPath: string | null; needsDriveUpdate: boolean }> {
+  const { label, localPath, driveFileId, printUrl, prefix, req } = params;
+
+  if (localPath && fs.existsSync(localPath)) {
+    return { buffer: fs.readFileSync(localPath), generatedPath: null, needsDriveUpdate: false };
+  }
+
+  let driveWasInvalid = false;
+  if (driveFileId) {
+    try {
+      const driveBuffer = await downloadBufferFromDrive(driveFileId);
+      if (isValidPdfBuffer(driveBuffer)) {
+        console.log(`[Email Notif] PDF de ${label} obtenido desde Drive (${driveFileId}, ${driveBuffer.length} bytes)`);
+        return { buffer: driveBuffer, generatedPath: null, needsDriveUpdate: false };
+      }
+      driveWasInvalid = true;
+      console.warn(`[Email Notif] PDF de ${label} en Drive (${driveFileId}) es inválido/incompleto (${driveBuffer?.length || 0} bytes); regenerando con Puppeteer.`);
+    } catch (driveErr: any) {
+      console.warn(`[Email Notif] No se pudo descargar PDF de ${label} desde Drive (${driveFileId}): ${driveErr?.message || driveErr}`);
+    }
+  }
+
+  try {
+    const genPath = await generatePdfFromUrl(printUrl, prefix, { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) });
+    if (genPath && fs.existsSync(genPath)) {
+      return {
+        buffer: fs.readFileSync(genPath),
+        generatedPath: genPath,
+        needsDriveUpdate: !driveFileId || driveWasInvalid
+      };
+    }
+  } catch (pdfErr: any) {
+    console.error(`[Email Notif] Error generando PDF de ${label}:`, pdfErr?.message || pdfErr);
+  }
+
+  return { buffer: null, generatedPath: null, needsDriveUpdate: false };
+}
+
 async function sendPagoNotificationEmailDetailed(
   pagoId: string,
   req: any,
@@ -3356,29 +3407,28 @@ async function sendPagoNotificationEmailDetailed(
       { expiresIn: '1h' }
     );
 
-    // 1. Generar PDFs con Puppeteer por separado (si uno falla, no impide generar/adjuntar el otro ni usar respaldo de Drive)
-    if (pago.ordenId) {
-      try {
-        oPdf = await generatePdfFromUrl(
-          `${baseUrl}/?printOrden=${pago.ordenId}&token=${reqToken}`,
-          'orden',
-          { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
-        );
-      } catch (oErr: any) {
-        console.error(`[Email Notif] Error generando PDF de Orden (${pago.ordenId}) para pago ${pagoId}:`, oErr?.message || oErr);
-      }
-    }
-    if (!pPdf) {
-      try {
-        pPdf = await generatePdfFromUrl(
-          `${baseUrl}/?printPago=${pago.id}&token=${reqToken}`,
-          'pago',
-          { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
-        );
-      } catch (pErr: any) {
-        console.error(`[Email Notif] Error generando PDF de Pago (${pago.id}):`, pErr?.message || pErr);
-      }
-    }
+    // 1. Obtener PDFs secuencialmente priorizando artefacto en curso o respaldo válido en Drive para ahorrar RAM/tiempo en Render, y Puppeteer si falta o está incompleto
+    const ordenDoc = pago.ordenId
+      ? await resolveDocumentPdfForEmail({
+          label: `Orden ${pago.ordenId}`,
+          localPath: null,
+          driveFileId: ordenObj?.driveFileId,
+          printUrl: `${baseUrl}/?printOrden=${pago.ordenId}&token=${reqToken}`,
+          prefix: 'orden',
+          req
+        })
+      : { buffer: null, generatedPath: null, needsDriveUpdate: false };
+
+    const pagoDoc = await resolveDocumentPdfForEmail({
+      label: `Pago ${pago.id}`,
+      localPath: pPdf,
+      driveFileId: pago.driveFileId,
+      printUrl: `${baseUrl}/?printPago=${pago.id}&token=${reqToken}`,
+      prefix: 'pago',
+      req
+    });
+    oPdf = ordenDoc.generatedPath;
+    if (pagoDoc.generatedPath) pPdf = pagoDoc.generatedPath;
 
     const rawTitulo = (pago.concepto || ordenObj?.titulo || (ordenObj?.items ? generateItemsTitle(ordenObj.items) : '') || '').trim();
 
@@ -3436,32 +3486,11 @@ async function sendPagoNotificationEmailDetailed(
     const pagoFileName = sanitizePdfAttachmentName(`Pago a proveedor ${pago.id} ${proyName} - ${provName}.pdf`);
 
     const attachments: any[] = [];
-    if (oPdf && fs.existsSync(oPdf)) {
-      attachments.push({ filename: ordenFileName, content: fs.readFileSync(oPdf) });
-    } else if (ordenObj?.driveFileId) {
-      try {
-        const ordenDriveBuffer = await downloadBufferFromDrive(ordenObj.driveFileId);
-        if (ordenDriveBuffer && ordenDriveBuffer.length > 0) {
-          attachments.push({ filename: ordenFileName, content: ordenDriveBuffer });
-          console.log(`[Email Notif] PDF de orden ${pago.ordenId} adjuntado desde respaldo Drive (${ordenObj.driveFileId})`);
-        }
-      } catch (driveOrdErr: any) {
-        console.error(`[Email Notif] Error descargando PDF de orden ${pago.ordenId} desde Drive:`, driveOrdErr?.message || driveOrdErr);
-      }
+    if (ordenDoc.buffer && ordenDoc.buffer.length > 0) {
+      attachments.push({ filename: ordenFileName, content: ordenDoc.buffer });
     }
-
-    if (pPdf && fs.existsSync(pPdf)) {
-      attachments.push({ filename: pagoFileName, content: fs.readFileSync(pPdf) });
-    } else if (pago.driveFileId) {
-      try {
-        const pagoDriveBuffer = await downloadBufferFromDrive(pago.driveFileId);
-        if (pagoDriveBuffer && pagoDriveBuffer.length > 0) {
-          attachments.push({ filename: pagoFileName, content: pagoDriveBuffer });
-          console.log(`[Email Notif] PDF de pago ${pago.id} adjuntado desde respaldo Drive (${pago.driveFileId})`);
-        }
-      } catch (drivePagoErr: any) {
-        console.error(`[Email Notif] Error descargando PDF de pago ${pago.id} desde Drive:`, drivePagoErr?.message || drivePagoErr);
-      }
+    if (pagoDoc.buffer && pagoDoc.buffer.length > 0) {
+      attachments.push({ filename: pagoFileName, content: pagoDoc.buffer });
     }
 
     // 2. Adjuntar factura / comprobante
@@ -3486,9 +3515,9 @@ async function sendPagoNotificationEmailDetailed(
       }
     }
 
-    // 3. Subir a Google Drive solo si aún no existe respaldo oficial en la orden/pago
+    // 3. Subir a Google Drive si se generó nuevo respaldo oficial o si faltaba/estaba incompleto
     try {
-      if (oPdf && fs.existsSync(oPdf) && !ordenObj?.driveFileId) {
+      if (oPdf && fs.existsSync(oPdf) && ordenDoc.needsDriveUpdate) {
         const ordenDriveRes = await uploadToProjectDriveFolder({
           projectId: proy?.id,
           clienteId: proy?.clienteId,
@@ -3500,7 +3529,10 @@ async function sendPagoNotificationEmailDetailed(
           mimeType: 'application/pdf',
           filePath: oPdf,
           userEmail: resolveUserEmail(req),
-          prisma
+          prisma,
+          versioning: true,
+          itemIdentifier: pago.ordenId || undefined,
+          entityName: provName
         });
         if (ordenDriveRes?.webViewLink && pago.ordenId) {
           await prisma.orden.update({
@@ -3509,7 +3541,7 @@ async function sendPagoNotificationEmailDetailed(
           }).catch(() => {});
         }
       }
-      if (!options?.skipPagoDriveUpload && !pago.driveFileId && pPdf && fs.existsSync(pPdf)) {
+      if (!options?.skipPagoDriveUpload && pPdf && fs.existsSync(pPdf) && pagoDoc.needsDriveUpdate) {
         const pagoDriveRes = await uploadToProjectDriveFolder({
           projectId: proy?.id,
           clienteId: proy?.clienteId,
@@ -3521,9 +3553,12 @@ async function sendPagoNotificationEmailDetailed(
           mimeType: 'application/pdf',
           filePath: pPdf,
           userEmail: resolveUserEmail(req),
-          prisma
+          prisma,
+          versioning: true,
+          itemIdentifier: pago.id,
+          entityName: provName
         });
-        if (pagoDriveRes?.webViewLink && !pago.pdfUrl) {
+        if (pagoDriveRes?.webViewLink) {
           await prisma.pago.update({
             where: { id: pago.id },
             data: { pdfUrl: pagoDriveRes.webViewLink, driveFileId: pagoDriveRes.id }

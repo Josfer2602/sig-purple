@@ -4,6 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 
 let browserInstance: Browser | null = null;
+let browserLaunchPromise: Promise<Browser> | null = null;
 let activePdfJobs = 0;
 let closeRequested = false;
 
@@ -93,10 +94,18 @@ export async function checkPdfEngineHealth(): Promise<{ available: boolean; exec
 }
 
 async function getBrowserInstance(): Promise<Browser> {
-  if (!browserInstance || !browserInstance.connected) {
+  if (browserInstance && browserInstance.connected) {
+    return browserInstance;
+  }
+  if (browserLaunchPromise) {
+    return browserLaunchPromise;
+  }
+
+  browserLaunchPromise = (async () => {
     try {
       if (browserInstance) {
         await browserInstance.close().catch(() => {});
+        browserInstance = null;
       }
     } catch {}
 
@@ -106,24 +115,36 @@ async function getBrowserInstance(): Promise<Browser> {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-gpu',
+      '--disable-software-rasterizer',
       '--no-first-run',
       '--disable-extensions',
+      '--disable-default-apps',
       '--disable-background-networking',
+      '--disable-background-timer-throttling',
+      '--disable-renderer-backgrounding',
       '--disable-sync',
       '--metrics-recording-only',
-      '--mute-audio'
+      '--mute-audio',
+      '--disable-features=Translate,BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints'
     ];
     if (process.platform === 'linux') {
-      launchArgs.push('--no-zygote');
+      launchArgs.push('--no-zygote', '--renderer-process-limit=1', '--js-flags=--max-old-space-size=192');
     }
 
-    browserInstance = await puppeteer.launch({
+    const launched = await puppeteer.launch({
       headless: true,
       ...(executablePath ? { executablePath } : {}),
       args: launchArgs
     });
+    browserInstance = launched;
+    return launched;
+  })();
+
+  try {
+    return await browserLaunchPromise;
+  } finally {
+    browserLaunchPromise = null;
   }
-  return browserInstance;
 }
 
 export async function closePdfBrowser(): Promise<void> {
@@ -132,13 +153,23 @@ export async function closePdfBrowser(): Promise<void> {
     closeRequested = true;
     return;
   }
-  if (browserInstance) {
+  const instance = browserInstance;
+  browserInstance = null;
+  if (instance) {
+    const proc = instance.process?.();
     try {
-      await browserInstance.close();
+      await Promise.race([
+        instance.close(),
+        new Promise<void>((resolve) => setTimeout(resolve, 2500))
+      ]);
     } catch {
       // Ignore close error
     } finally {
-      browserInstance = null;
+      try {
+        if (proc && !proc.killed) {
+          proc.kill('SIGKILL');
+        }
+      } catch {}
     }
   }
 }
