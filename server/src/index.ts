@@ -345,9 +345,9 @@ function preflightPaymentEmailWarning(emailCtx: {
   return undefined;
 }
 
-const recentPagoEmailStatus = new Map<string, { ok: boolean; error?: string; transport?: string; sentTo?: string; updatedAt: string }>();
+const recentPagoEmailStatus = new Map<string, { ok: boolean; error?: string; transport?: string; sentTo?: string; attachments?: string[]; updatedAt: string }>();
 
-function recordPagoEmailStatus(pagoId: string, status: { ok: boolean; error?: string; transport?: string; sentTo?: string }) {
+function recordPagoEmailStatus(pagoId: string, status: { ok: boolean; error?: string; transport?: string; sentTo?: string; attachments?: string[] }) {
   if (recentPagoEmailStatus.size >= 250) {
     const firstKey = recentPagoEmailStatus.keys().next().value;
     if (firstKey) recentPagoEmailStatus.delete(firstKey);
@@ -370,6 +370,42 @@ const resolveUserEmail = (req: any): string | undefined => {
     } catch (e) { }
   }
   return undefined;
+};
+
+/**
+ * Devuelve el origen público de la web SOLO cuando coincide con el host por el
+ * que responde la API (frontend y backend bajo el mismo dominio, por ejemplo
+ * nginx sirviendo /api en el mismo host). Las vistas de impresión usan este
+ * dato para redirigir llamadas /api/* compiladas con un dominio antiguo hacia
+ * el mismo origen desde el que se cargó la página.
+ */
+const resolveSameOriginApiOrigin = (req: any): string | undefined => {
+  const firstHeaderValue = (value: any): string => {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return typeof raw === 'string' ? raw.split(',')[0].trim() : '';
+  };
+
+  const apiHost = firstHeaderValue(req?.headers?.['x-forwarded-host']) || firstHeaderValue(req?.headers?.host);
+  if (!apiHost) return undefined;
+
+  const pageOriginFrom = (raw: string): string | undefined => {
+    if (!raw || raw === 'null') return undefined;
+    try {
+      const parsed = new URL(raw);
+      return parsed.host === apiHost ? parsed.origin : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const fromOrigin = pageOriginFrom(firstHeaderValue(req?.headers?.origin));
+  if (fromOrigin) return fromOrigin;
+
+  const fromReferer = pageOriginFrom(firstHeaderValue(req?.headers?.referer));
+  if (fromReferer) return fromReferer;
+
+  // Si no hay cabeceras de navegador, solo usar FRONTEND_URL cuando apunte al mismo host de la API
+  return pageOriginFrom((process.env.FRONTEND_URL || '').trim());
 };
 
 // --- AUTH ---
@@ -2393,7 +2429,11 @@ async function uploadOrdenPdfToDrive(ordenId: string, req?: any): Promise<any> {
   let pdfPath: string | null = null;
   try {
     console.log(`[Google Drive] Generando PDF automático para orden ${orden.id}...`);
-    pdfPath = await generatePdfFromUrl(`${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`, `orden_${orden.id}`);
+    pdfPath = await generatePdfFromUrl(
+      `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
+      `orden_${orden.id}`,
+      { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+    );
 
     const tipoDoc = orden.tipoOrden ? orden.tipoOrden.toUpperCase() : 'COMPRA';
     const fileName = `Orden_${tipoDoc}_${orden.id}.pdf`;
@@ -2467,7 +2507,11 @@ async function uploadPagoPdfToDriveWithArtifact(
   let driveResult: any = null;
   try {
     console.log(`[Google Drive] Generando PDF automático para pago ${pago.id}...`);
-    pdfPath = await generatePdfFromUrl(`${baseUrl}/?printPago=${pago.id}&token=${reqToken}`, `pago_${pago.id}`);
+    pdfPath = await generatePdfFromUrl(
+      `${baseUrl}/?printPago=${pago.id}&token=${reqToken}`,
+      `pago_${pago.id}`,
+      { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+    );
 
     const provName = (pago.proveedor?.razonSocial || pago.proveedor?.nombre || '').trim();
     const cleanId = pago.numeroComprobante ? `Comprobante_${pago.numeroComprobante}` : pago.id;
@@ -2963,7 +3007,11 @@ app.get('/api/ordenes/:id/pdf', authenticateToken, async (req: any, res: any) =>
       { expiresIn: '1h' }
     );
 
-    pdfPath = await generatePdfFromUrl(`${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`, `orden_${orden.id}`);
+    pdfPath = await generatePdfFromUrl(
+      `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
+      `orden_${orden.id}`,
+      { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+    );
 
     const tipoDoc = orden.tipoOrden ? orden.tipoOrden.toUpperCase() : 'COMPRA';
     res.setHeader('Content-Type', 'application/pdf');
@@ -3052,7 +3100,11 @@ app.post('/api/ordenes/send-email', authenticateToken, async (req: any, res: any
 
       for (const orden of ordenes) {
         try {
-          const pdfPath = await generatePdfFromUrl(`${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`, `orden_${orden.id}`);
+          const pdfPath = await generatePdfFromUrl(
+            `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
+            `orden_${orden.id}`,
+            { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+          );
           generatedPdfs.push(pdfPath);
           const cleanTipo = orden.tipoOrden ? orden.tipoOrden.toUpperCase() : 'COMPRA';
           attachments.push({
@@ -3146,7 +3198,11 @@ app.post('/api/ordenes/send-email', authenticateToken, async (req: any, res: any
             continue;
           }
 
-          pdfPath = await generatePdfFromUrl(`${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`, `orden_${orden.id}`);
+          pdfPath = await generatePdfFromUrl(
+            `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
+            `orden_${orden.id}`,
+            { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+          );
           generatedPdfs.push(pdfPath);
 
           const cleanTipo = orden.tipoOrden ? orden.tipoOrden.toUpperCase() : 'COMPRA';
@@ -3262,7 +3318,7 @@ async function sendPagoNotificationEmailDetailed(
   pagoId: string,
   req: any,
   options?: { existingPagoPdfPath?: string; skipPagoDriveUpload?: boolean }
-): Promise<{ success: boolean; error?: string; transport?: string; sentTo?: string }> {
+): Promise<{ success: boolean; error?: string; transport?: string; sentTo?: string; attachments?: string[] }> {
   let oPdf: string | null = null;
   let pPdf: string | null =
     options?.existingPagoPdfPath && fs.existsSync(options.existingPagoPdfPath)
@@ -3300,16 +3356,28 @@ async function sendPagoNotificationEmailDetailed(
       { expiresIn: '1h' }
     );
 
-    // 1. Generar PDFs con Puppeteer (sin duplicar si ya vino generado desde uploadPagoPdfToDriveWithArtifact)
-    try {
-      if (pago.ordenId) {
-        oPdf = await generatePdfFromUrl(`${baseUrl}/?printOrden=${pago.ordenId}&token=${reqToken}`, 'orden');
+    // 1. Generar PDFs con Puppeteer por separado (si uno falla, no impide generar/adjuntar el otro ni usar respaldo de Drive)
+    if (pago.ordenId) {
+      try {
+        oPdf = await generatePdfFromUrl(
+          `${baseUrl}/?printOrden=${pago.ordenId}&token=${reqToken}`,
+          'orden',
+          { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+        );
+      } catch (oErr: any) {
+        console.error(`[Email Notif] Error generando PDF de Orden (${pago.ordenId}) para pago ${pagoId}:`, oErr?.message || oErr);
       }
-      if (!pPdf) {
-        pPdf = await generatePdfFromUrl(`${baseUrl}/?printPago=${pago.id}&token=${reqToken}`, 'pago');
+    }
+    if (!pPdf) {
+      try {
+        pPdf = await generatePdfFromUrl(
+          `${baseUrl}/?printPago=${pago.id}&token=${reqToken}`,
+          'pago',
+          { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+        );
+      } catch (pErr: any) {
+        console.error(`[Email Notif] Error generando PDF de Pago (${pago.id}):`, pErr?.message || pErr);
       }
-    } catch (pdfErr: any) {
-      console.error(`[Email Notif] Error generando PDFs para pago ${pagoId}:`, pdfErr?.message || pdfErr);
     }
 
     const rawTitulo = (pago.concepto || ordenObj?.titulo || (ordenObj?.items ? generateItemsTitle(ordenObj.items) : '') || '').trim();
@@ -3361,15 +3429,39 @@ async function sendPagoNotificationEmailDetailed(
     const proyName = proy?.nombre || 'Proyecto';
     const provName = prov?.razonSocial || prov?.nombre || 'Proveedor';
 
-    const ordenFileName = `${tipoOrdenName} ${pago.ordenId || ''} ${proyName} - ${provName}.pdf`.replace(/\s+/g, ' ');
-    const pagoFileName = `Pago a proveedor ${pago.id} ${proyName} - ${provName}.pdf`.replace(/\s+/g, ' ');
+    const sanitizePdfAttachmentName = (raw: string) =>
+      raw.replace(/[\/\\:*?"<>|\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const ordenFileName = sanitizePdfAttachmentName(`${tipoOrdenName} ${pago.ordenId || ''} ${proyName} - ${provName}.pdf`);
+    const pagoFileName = sanitizePdfAttachmentName(`Pago a proveedor ${pago.id} ${proyName} - ${provName}.pdf`);
 
     const attachments: any[] = [];
     if (oPdf && fs.existsSync(oPdf)) {
       attachments.push({ filename: ordenFileName, content: fs.readFileSync(oPdf) });
+    } else if (ordenObj?.driveFileId) {
+      try {
+        const ordenDriveBuffer = await downloadBufferFromDrive(ordenObj.driveFileId);
+        if (ordenDriveBuffer && ordenDriveBuffer.length > 0) {
+          attachments.push({ filename: ordenFileName, content: ordenDriveBuffer });
+          console.log(`[Email Notif] PDF de orden ${pago.ordenId} adjuntado desde respaldo Drive (${ordenObj.driveFileId})`);
+        }
+      } catch (driveOrdErr: any) {
+        console.error(`[Email Notif] Error descargando PDF de orden ${pago.ordenId} desde Drive:`, driveOrdErr?.message || driveOrdErr);
+      }
     }
+
     if (pPdf && fs.existsSync(pPdf)) {
       attachments.push({ filename: pagoFileName, content: fs.readFileSync(pPdf) });
+    } else if (pago.driveFileId) {
+      try {
+        const pagoDriveBuffer = await downloadBufferFromDrive(pago.driveFileId);
+        if (pagoDriveBuffer && pagoDriveBuffer.length > 0) {
+          attachments.push({ filename: pagoFileName, content: pagoDriveBuffer });
+          console.log(`[Email Notif] PDF de pago ${pago.id} adjuntado desde respaldo Drive (${pago.driveFileId})`);
+        }
+      } catch (drivePagoErr: any) {
+        console.error(`[Email Notif] Error descargando PDF de pago ${pago.id} desde Drive:`, drivePagoErr?.message || drivePagoErr);
+      }
     }
 
     // 2. Adjuntar factura / comprobante
@@ -3394,10 +3486,10 @@ async function sendPagoNotificationEmailDetailed(
       }
     }
 
-    // 3. Subir a Google Drive
+    // 3. Subir a Google Drive solo si aún no existe respaldo oficial en la orden/pago
     try {
-      if (oPdf && fs.existsSync(oPdf)) {
-        await uploadToProjectDriveFolder({
+      if (oPdf && fs.existsSync(oPdf) && !ordenObj?.driveFileId) {
+        const ordenDriveRes = await uploadToProjectDriveFolder({
           projectId: proy?.id,
           clienteId: proy?.clienteId,
           clientName: cli?.empresa,
@@ -3410,8 +3502,14 @@ async function sendPagoNotificationEmailDetailed(
           userEmail: resolveUserEmail(req),
           prisma
         });
+        if (ordenDriveRes?.webViewLink && pago.ordenId) {
+          await prisma.orden.update({
+            where: { id: pago.ordenId },
+            data: { pdfUrl: ordenDriveRes.webViewLink, driveFileId: ordenDriveRes.id }
+          }).catch(() => {});
+        }
       }
-      if (!options?.skipPagoDriveUpload && pPdf && fs.existsSync(pPdf)) {
+      if (!options?.skipPagoDriveUpload && !pago.driveFileId && pPdf && fs.existsSync(pPdf)) {
         const pagoDriveRes = await uploadToProjectDriveFolder({
           projectId: proy?.id,
           clienteId: proy?.clienteId,
@@ -3441,7 +3539,7 @@ async function sendPagoNotificationEmailDetailed(
     if (config.notificacionPagosEmails) {
       config.notificacionPagosEmails.split(',').map((e: string) => e.trim()).filter(Boolean).forEach((e: string) => recipientsSet.add(e));
     }
-    if ((config.notificarProveedorPago || true) && prov?.correo && prov.correo.trim()) {
+    if ((config.notificarProveedorPago === true) && prov?.correo && prov.correo.trim()) {
       recipientsSet.add(prov.correo.trim());
     }
     if (req?.user?.email && req.user.email.includes('@purplebtl.com')) {
@@ -3468,9 +3566,10 @@ async function sendPagoNotificationEmailDetailed(
       emailCtx.httpsConfig
     );
 
-    console.log(`[Email Notif] ✅ Correo enviado (${sendRes.transport}) a [${toAddresses}] para pago ${pagoId}`);
-    recordPagoEmailStatus(pagoId, { ok: true, transport: sendRes.transport, sentTo: toAddresses });
-    return { success: true, transport: sendRes.transport, sentTo: toAddresses };
+    const attachmentNames = attachments.map(a => a.filename);
+    console.log(`[Email Notif] ✅ Correo enviado (${sendRes.transport}) a [${toAddresses}] para pago ${pagoId} con ${attachmentNames.length} adjunto(s): ${attachmentNames.join(', ')}`);
+    recordPagoEmailStatus(pagoId, { ok: true, transport: sendRes.transport, sentTo: toAddresses, attachments: attachmentNames });
+    return { success: true, transport: sendRes.transport, sentTo: toAddresses, attachments: attachmentNames };
   } catch (err: any) {
     const errMsg = err?.message || 'Error desconocido al enviar correo';
     console.error(`[Email Notif] ❌ Fallo controlado al enviar notificación de pago (${pagoId}):`, errMsg);
@@ -3493,6 +3592,37 @@ async function triggerPagoNotificationEmail(
 ): Promise<boolean> {
   const res = await sendPagoNotificationEmailDetailed(pagoId, req, options);
   return res.success;
+}
+
+/**
+ * Encola en segundo plano la regeneración del PDF oficial del pago, su respaldo
+ * en Google Drive y el envío de la notificación con la OC/OS adjunta.
+ * Se usa tanto al registrar un pago como al confirmarlo (estado -> Pagado).
+ */
+function queuePagoNotificationEmail(pagoId: string, req: any, options?: { closeBrowser?: boolean }) {
+  setImmediate(async () => {
+    let artifact: { driveResult: any; pdfPath: string | null } = { driveResult: null, pdfPath: null };
+    try {
+      artifact = await uploadPagoPdfToDriveWithArtifact(pagoId, req, { keepTempFile: true });
+    } catch (dErr: any) {
+      console.error(`[Google Drive] Error al subir PDF de pago ${pagoId} en segundo plano:`, dErr?.message || dErr);
+    }
+    try {
+      await triggerPagoNotificationEmail(pagoId, req, {
+        existingPagoPdfPath: artifact.pdfPath || undefined,
+        skipPagoDriveUpload: Boolean(artifact.driveResult?.webViewLink)
+      });
+    } catch (err: any) {
+      console.error(`[Email Notif] Error en segundo plano al notificar pago ${pagoId}:`, err?.message || err);
+    } finally {
+      if (artifact.pdfPath && fs.existsSync(artifact.pdfPath)) {
+        try { fs.unlinkSync(artifact.pdfPath); } catch {}
+      }
+      if (options?.closeBrowser) {
+        await closePdfBrowser();
+      }
+    }
+  });
 }
 
 // --- PAGOS ---
@@ -3575,26 +3705,7 @@ app.get('/api/pagos', authenticateToken, async (req, res) => res.json(await pris
     res.json(emailWarning ? { ...result, emailWarning } : result);
 
     // Subir PDF oficial a Google Drive y enviar notificación de correo en segundo plano (sin duplicar PDF de pago)
-    setImmediate(async () => {
-      let artifact: { driveResult: any; pdfPath: string | null } = { driveResult: null, pdfPath: null };
-      try {
-        artifact = await uploadPagoPdfToDriveWithArtifact(result.id, req, { keepTempFile: true });
-      } catch (dErr: any) {
-        console.error('[Google Drive] Error al subir PDF de pago en segundo plano:', dErr?.message || dErr);
-      }
-      try {
-        await triggerPagoNotificationEmail(result.id, req, {
-          existingPagoPdfPath: artifact.pdfPath || undefined,
-          skipPagoDriveUpload: Boolean(artifact.driveResult?.webViewLink)
-        });
-      } catch (err: any) {
-        console.error('[Email Notif] Background error al notificar pago:', err?.message || err);
-      } finally {
-        if (artifact.pdfPath && fs.existsSync(artifact.pdfPath)) {
-          try { fs.unlinkSync(artifact.pdfPath); } catch {}
-        }
-      }
-    });
+    queuePagoNotificationEmail(result.id, req, { closeBrowser: true });
   } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -4205,14 +4316,20 @@ app.put('/api/pagos/:id', authenticateToken, upload.single('comprobanteFile'), a
     }
 
     const result = await prisma.pago.update({ where: { id: req.params.id }, data: updateData });
+    const justMarkedAsPaid = existingPago.estado !== 'Pagado' && result.estado === 'Pagado';
     res.json(result);
 
-    // Re-generar y subir nueva versión del PDF de pago a Google Drive en segundo plano (desglose por versiones)
-    setImmediate(() => {
-      uploadPagoPdfToDrive(result.id, req).catch(err => {
-        console.error('[Google Drive] Error actualizando PDF de pago en segundo plano:', err?.message || err);
+    if (justMarkedAsPaid) {
+      // Al confirmar el pago se regenera el PDF y se envía la notificación con la OC/OS adjunta
+      queuePagoNotificationEmail(result.id, req, { closeBrowser: true });
+    } else {
+      // Re-generar y subir nueva versión del PDF de pago a Google Drive en segundo plano (desglose por versiones)
+      setImmediate(() => {
+        uploadPagoPdfToDrive(result.id, req).catch(err => {
+          console.error('[Google Drive] Error actualizando PDF de pago en segundo plano:', err?.message || err);
+        });
       });
-    });
+    }
   } catch (error: any) {
     console.error("Error en PUT /api/pagos/:id:", error);
     res.status(500).json({ error: error.message });
@@ -4235,15 +4352,37 @@ app.delete('/api/gantts/:id', authenticateToken, async (req, res) => {
 });
 
 // --- ENDPOINTS IMPRESIÓN ---
+const PRINT_SAFE_CONFIG_SELECT = {
+  id: true,
+  headerHtml: true,
+  footerHtml: true,
+  ordenHeaderHtml: true,
+  ordenFooterHtml: true,
+  pagoHeaderHtml: true,
+  pagoFooterHtml: true,
+  listasDinamicas: true
+};
+
 app.get('/api/print/orden/:id', optionalAuthenticateToken, async (req, res) => {
   const o = await prisma.orden.findUnique({ where: { id: req.params.id }, include: { items: true } });
-  const [prov, cli, proy, cfg] = await Promise.all([prisma.proveedor.findUnique({ where: { id: o?.proveedorId }, include: { cuentas: true } }), prisma.cliente.findUnique({ where: { id: o?.clienteId } }), prisma.proyecto.findUnique({ where: { id: o?.proyectoId } }), prisma.appConfig.findUnique({ where: { id: 'global' } })]);
+  const [prov, cli, proy, cfg] = await Promise.all([
+    prisma.proveedor.findUnique({ where: { id: o?.proveedorId }, include: { cuentas: true } }),
+    prisma.cliente.findUnique({ where: { id: o?.clienteId } }),
+    prisma.proyecto.findUnique({ where: { id: o?.proyectoId } }),
+    prisma.appConfig.findUnique({ where: { id: 'global' }, select: PRINT_SAFE_CONFIG_SELECT })
+  ]);
   res.json({ orden: o, proveedor: prov, cliente: cli, proyecto: proy, config: cfg });
 });
 
 app.get('/api/print/pago/:id', optionalAuthenticateToken, async (req, res) => {
   const p = await prisma.pago.findUnique({ where: { id: req.params.id } });
-  const [o, prov, cli, proy, cfg] = await Promise.all([prisma.orden.findUnique({ where: { id: p?.ordenId }, include: { items: true } }), prisma.proveedor.findUnique({ where: { id: p?.proveedorId }, include: { cuentas: true } }), prisma.cliente.findUnique({ where: { id: p?.clienteId } }), prisma.proyecto.findUnique({ where: { id: p?.proyectoId } }), prisma.appConfig.findUnique({ where: { id: 'global' } })]);
+  const [o, prov, cli, proy, cfg] = await Promise.all([
+    prisma.orden.findUnique({ where: { id: p?.ordenId }, include: { items: true } }),
+    prisma.proveedor.findUnique({ where: { id: p?.proveedorId }, include: { cuentas: true } }),
+    prisma.cliente.findUnique({ where: { id: p?.clienteId } }),
+    prisma.proyecto.findUnique({ where: { id: p?.proyectoId } }),
+    prisma.appConfig.findUnique({ where: { id: 'global' }, select: PRINT_SAFE_CONFIG_SELECT })
+  ]);
   res.json({ pago: p, orden: o, proveedor: prov, cliente: cli, proyecto: proy, config: cfg });
 });
 
@@ -4339,6 +4478,8 @@ app.post('/api/pagos/:id/send-email', authenticateToken, async (req: any, res: a
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+  } finally {
+    await closePdfBrowser();
   }
 });
 

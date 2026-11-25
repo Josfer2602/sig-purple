@@ -270,7 +270,86 @@ function AppContent() {
   );
 }
 
+function renderStandaloneRoute() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const printQuoteId = urlParams.get('print');
+  const printOrdenId = urlParams.get('printOrden');
+  const printPagoId = urlParams.get('printPago');
+  const shareGanttToken = urlParams.get('gantt');
+  const shareBookToken = urlParams.get('book');
+
+  if (printQuoteId) {
+    const cli = urlParams.get('cliente');
+    const pro = urlParams.get('proyecto');
+    const v = urlParams.get('v') || urlParams.get('version');
+    if (cli || pro) {
+      document.title = `Cotización | ${cli || 'Cliente'} - ${pro || 'Proyecto'}${v ? ` (V${v})` : ''} - PURPLE`;
+    }
+    return (
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Cargando...</div>}>
+        <PrintCotizacionView quoteId={printQuoteId} />
+      </Suspense>
+    );
+  }
+
+  if (printOrdenId) {
+    return (
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Cargando...</div>}>
+        <PrintOrdenView ordenId={printOrdenId} />
+      </Suspense>
+    );
+  }
+
+  if (printPagoId) {
+    return (
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Cargando...</div>}>
+        <PrintPagoView pagoId={printPagoId} />
+      </Suspense>
+    );
+  }
+
+  if (shareGanttToken) {
+    const cli = urlParams.get('cliente');
+    const pro = urlParams.get('proyecto');
+    const v = urlParams.get('v') || urlParams.get('version');
+    if (cli || pro) {
+      document.title = `Cronograma | ${cli || 'Cliente'} - ${pro || 'Proyecto'}${v ? ` (V${v})` : ''} - PURPLE`;
+    }
+    return (
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Cargando...</div>}>
+        <PublicGanttView token={shareGanttToken} />
+      </Suspense>
+    );
+  }
+
+  if (shareBookToken) {
+    const cli = urlParams.get('cliente');
+    const pro = urlParams.get('proyecto');
+    const v = urlParams.get('v') || urlParams.get('version');
+    if (cli || pro) {
+      document.title = `Presentación | ${cli || 'Cliente'} - ${pro || 'Proyecto'}${v ? ` (${v})` : ''} - PURPLE`;
+    }
+    return (
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Cargando...</div>}>
+        <PublicBookView token={shareBookToken} />
+      </Suspense>
+    );
+  }
+
+  return null;
+}
+
 function App() {
+  const standalone = renderStandaloneRoute();
+  if (standalone) {
+    return (
+      <>
+        <Toaster position="top-right" />
+        {standalone}
+      </>
+    );
+  }
+
   return (
     <GlobalProvider>
       <SmartMeetingProvider>

@@ -196,7 +196,12 @@ export const PagoDocumentModal: React.FC<Props> = ({ isOpen, onClose, pago, orde
               if (!res.ok || !data.success) {
                 throw new Error(data.error || 'No se pudo enviar el correo');
               }
-              toast.success(`Correo enviado exitosamente (${data.sentTo || 'destinatarios'})`);
+              const attachmentNames: string[] = Array.isArray(data.attachments) ? data.attachments : [];
+              if (attachmentNames.length === 0) {
+                toast('Correo enviado, pero sin adjuntos. Verifica la generación de los PDFs.', { icon: '⚠️', duration: 9000 });
+              } else {
+                toast.success(`Correo enviado a ${data.sentTo || 'destinatarios'} con ${attachmentNames.length} adjunto(s): ${attachmentNames.join(', ')}`, { duration: 9000 });
+              }
             } catch (err: any) {
               toast.error('Error al enviar correo: ' + (err?.message || 'Error de conexión'), { duration: 7000 });
             } finally {

@@ -1,6 +1,6 @@
 import { Printer } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
-import { API_URL } from '../context/GlobalContext';
+import { API_URL } from '../utils/apiUrl';
 import { buildGanttClientUrl } from '../utils/clientLinks';
 
 interface PublicGanttViewProps {

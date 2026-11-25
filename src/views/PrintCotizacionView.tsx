@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import type { Quote } from '../types/quote';
-import { API_URL } from '../context/GlobalContext';
+import { API_URL } from '../utils/apiUrl';
 import { buildQuoteClientUrl } from '../utils/clientLinks';
 
 interface PrintCotizacionViewProps {

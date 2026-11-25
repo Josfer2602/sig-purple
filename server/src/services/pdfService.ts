@@ -1,9 +1,11 @@
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 
 let browserInstance: Browser | null = null;
+let activePdfJobs = 0;
+let closeRequested = false;
 
 async function resolveChromeExecutable(): Promise<string | undefined> {
   const candidates: string[] = [];
@@ -125,6 +127,11 @@ async function getBrowserInstance(): Promise<Browser> {
 }
 
 export async function closePdfBrowser(): Promise<void> {
+  // Si hay PDFs generándose, cerrar recién cuando termine el último para no cortarlos
+  if (activePdfJobs > 0) {
+    closeRequested = true;
+    return;
+  }
   if (browserInstance) {
     try {
       await browserInstance.close();
@@ -136,32 +143,106 @@ export async function closePdfBrowser(): Promise<void> {
   }
 }
 
-export async function generatePdfFromUrl(url: string, prefix: string = 'document'): Promise<string> {
-  const browser = await getBrowserInstance();
-  const page = await browser.newPage();
+/**
+ * Cuando el frontend y la API viven en el mismo dominio, las vistas de impresión
+ * deben consultar `/api/...` contra ese mismo dominio. Si el bundle quedó compilado
+ * con una URL de API antigua (por ejemplo un dominio de Render/Vercel ya retirado),
+ * redirigimos esas llamadas al origen actual para que el PDF siempre se genere.
+ */
+const buildSameOriginApiBridgeScript = (apiOrigin: string) => `
+(() => {
+  try {
+    var apiOrigin = ${JSON.stringify(apiOrigin)};
+    if (!apiOrigin || window.location.origin !== apiOrigin) return;
+
+    function rewrite(input) {
+      try {
+        var raw = typeof input === 'string' ? input : (input && input.url) || '';
+        if (!raw) return input;
+        var parsed = new URL(raw, window.location.href);
+        if (parsed.origin === apiOrigin) return input;
+        if (parsed.pathname.indexOf('/api/') !== 0) return input;
+        return parsed.pathname + parsed.search + parsed.hash;
+      } catch (e) {
+        return input;
+      }
+    }
+
+    if (window.fetch) {
+      var nativeFetch = window.fetch.bind(window);
+      window.fetch = function (input, init) {
+        return nativeFetch(rewrite(input), init);
+      };
+    }
+
+    if (window.XMLHttpRequest && window.XMLHttpRequest.prototype) {
+      var nativeOpen = window.XMLHttpRequest.prototype.open;
+      window.XMLHttpRequest.prototype.open = function (method, requestUrl) {
+        var args = Array.prototype.slice.call(arguments);
+        args[1] = rewrite(requestUrl);
+        return nativeOpen.apply(this, args);
+      };
+    }
+  } catch (e) {
+    // Si el navegador no permite el puente, la vista de impresión funciona igual.
+  }
+})();
+`;
+
+// Evita filtrar tokens JWT en los logs de diagnóstico
+const sanitizePdfUrlForLog = (raw: string): string => {
+  if (!raw) return '';
+  try {
+    const parsed = new URL(raw);
+    if (parsed.searchParams.has('token')) parsed.searchParams.set('token', '***');
+    return parsed.toString();
+  } catch {
+    return raw.replace(/([?&]token=)[^&]+/i, '$1***');
+  }
+};
+
+export async function generatePdfFromUrl(
+  url: string,
+  prefix: string = 'document',
+  options?: { sameOriginApiOrigin?: string }
+): Promise<string> {
+  activePdfJobs++;
+  let page: Page | null = null;
 
   try {
+    const browser = await getBrowserInstance();
+    page = await browser.newPage();
+
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
 
-    // Si la URL contiene token, inyectarlo como header Authorization para cualquier request interno
-    try {
-      const parsedUrl = new URL(url);
-      const token = parsedUrl.searchParams.get('token');
-      if (token) {
-        await page.setExtraHTTPHeaders({
-          'Authorization': `Bearer ${token}`
-        });
-      }
-    } catch {}
+    if (options?.sameOriginApiOrigin) {
+      await page.evaluateOnNewDocument(buildSameOriginApiBridgeScript(options.sameOriginApiOrigin));
+    }
 
-    // Use domcontentloaded for fast response without waiting indefinitely for service workers/websockets
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    page.on('pageerror', (err: any) => {
+      console.warn(`[PDF] Error JS en ${sanitizePdfUrlForLog(url)}: ${err?.message || err}`);
+    });
+    page.on('requestfailed', (request: any) => {
+      const failure = request?.failure?.();
+      console.warn(`[PDF] Request falló en ${sanitizePdfUrlForLog(url)}: ${sanitizePdfUrlForLog(request?.url?.() || '')} (${failure?.errorText || 'sin detalle'})`);
+    });
 
-    // Wait for the 'render-complete' element injected by React
+    // Use domcontentloaded without injecting global extraHTTPHeaders (prevents CORS preflight errors on external logos and keeps standalone print views clean)
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+
+    // Wait for the 'render-complete' element injected by React once /api/print/* resolves
     try {
-      await page.waitForSelector('#render-complete', { timeout: 12000 });
-    } catch {
-      console.warn(`Timeout waiting for #render-complete on ${url}, proceeding anyway...`);
+      await page.waitForSelector('#render-complete', { timeout: 20000 });
+    } catch (waitErr: any) {
+      let pageSnippet = '';
+      try {
+        pageSnippet = await page.evaluate(() => (document.body?.innerText || '').slice(0, 500));
+      } catch {}
+      throw new Error(
+        `La vista de impresión no terminó de renderizar (${sanitizePdfUrlForLog(url)}). ` +
+        `Verifica que la web pública cargue y que /api/print responda. ` +
+        `Detalle: ${waitErr?.message || waitErr}${pageSnippet ? ` | Contenido: ${pageSnippet.replace(/\s+/g, ' ').trim()}` : ''}`
+      );
     }
 
     // Brief stabilization pause (300ms) for fonts/styles
@@ -189,8 +270,15 @@ export async function generatePdfFromUrl(url: string, prefix: string = 'document
     }
     throw err;
   } finally {
-    try {
-      await page.close();
-    } catch {}
+    if (page) {
+      try {
+        await page.close();
+      } catch {}
+    }
+    activePdfJobs = Math.max(0, activePdfJobs - 1);
+    if (activePdfJobs === 0 && closeRequested) {
+      closeRequested = false;
+      await closePdfBrowser();
+    }
   }
 }
