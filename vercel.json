@@ -3,6 +3,14 @@
   "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://sig-purple-api.onrender.com/api/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "https://sig-purple-api.onrender.com/uploads/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

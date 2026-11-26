@@ -7,6 +7,7 @@ import { useGlobalContext, API_URL } from '../context/GlobalContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { buildQuoteClientUrl } from '../utils/clientLinks';
 import { exportCotizacionesToExcel } from '../utils/excelExport';
+import { computeQuoteTotals } from '../utils/quoteMathHelper';
 import toast from 'react-hot-toast';
 
 const getAvailableStatuses = (role: string, currentStatus: string) => {
@@ -333,19 +334,9 @@ export const CotizacionesList: React.FC<CotizacionesListProps> = ({
   };
 
   const calculateTotal = (quote: Quote) => {
-    let subTotalClient = 0;
-    (quote.categories || []).forEach(cat => {
-      (cat.items || []).forEach(item => {
-        const totalProvider = (item.subItems || []).reduce((acc, sub) => acc + ((sub.unitCost || 0) * (sub.quantity || 0) * (sub.dates || 0)), 0);
-        const internalMultiplierAmount = totalProvider * ((item.internalMultiplierPercent || 0) / 100);
-        const financialExpense = totalProvider * ((item.financialExpensePercent || 0) / 100);
-        const rawClientCost = totalProvider + internalMultiplierAmount + financialExpense;
-        const totalClient = Math.round(rawClientCost);
-        subTotalClient += totalClient;
-      });
-    });
+    const { subTotalClient, finalTotalClient } = computeQuoteTotals(quote);
     if (subTotalClient > 0) {
-      return subTotalClient * 1.12; // final total client (incl fee)
+      return finalTotalClient;
     }
     // Si es una cotización histórica importada que no tiene subítems desglosados, mostrar el subtotal comercial registrado del proyecto
     if (quote.projectId) {

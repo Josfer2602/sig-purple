@@ -7,6 +7,7 @@ import { SearchableProjectSelect } from '../components/SearchableProjectSelect';
 import { useGlobalContext, API_URL } from '../context/GlobalContext';
 import type { Quote } from '../types/quote';
 import { ensureImprevistoInSubItems } from '../types/quote';
+import { cloneCategoriesWithFreshIds } from '../utils/quoteMathHelper';
 import { Loader2, FileSpreadsheet, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -262,6 +263,7 @@ export const CotizacionesView: React.FC = () => {
       duplicatedQuote.isTemplate = false;
       duplicatedQuote.status = 'En Creación';
       duplicatedQuote.date = new Date().toLocaleDateString('es-PE');
+      duplicatedQuote.categories = cloneCategoriesWithFreshIds(duplicatedQuote.categories || []);
       
       await addQuote(duplicatedQuote);
       toast.success(isFromTemplate ? 'Cotización creada desde plantilla' : `Nueva versión V${duplicatedQuote.version} creada con todos sus ítems`);
@@ -296,6 +298,7 @@ export const CotizacionesView: React.FC = () => {
       newVersionQuote.version = maxVersion + 1;
       newVersionQuote.status = 'En Creación';
       newVersionQuote.date = new Date().toLocaleDateString('es-PE');
+      newVersionQuote.categories = cloneCategoriesWithFreshIds(newVersionQuote.categories || []);
       
       await addQuote(newVersionQuote);
       toast.success(`Nueva versión V${newVersionQuote.version} creada con todos sus ítems`);
@@ -323,6 +326,7 @@ export const CotizacionesView: React.FC = () => {
       templateQuote.templateName = `${sourceQuote.requirement} (Plantilla)`;
       templateQuote.status = 'En Creación';
       templateQuote.date = new Date().toLocaleDateString('es-PE');
+      templateQuote.categories = cloneCategoriesWithFreshIds(templateQuote.categories || []);
       
       await addQuote(templateQuote);
       toast.success('Guardado como plantilla');

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import type { Quote } from '../types/quote';
 import { API_URL } from '../utils/apiUrl';
 import { buildQuoteClientUrl } from '../utils/clientLinks';
+import { computeQuoteTotals, computeQuoteItemFinancials } from '../utils/quoteMathHelper';
 
 interface PrintCotizacionViewProps {
   quoteId: string;
@@ -175,30 +176,7 @@ export const PrintCotizacionView: React.FC<PrintCotizacionViewProps> = ({ quoteI
   if (error) return <div style={{ padding: '2rem', textAlign: 'center', color: 'red' }}>Error: {error}</div>;
   if (!quote) return null;
 
-  const calculateTotals = () => {
-    let subTotalClient = 0;
-    const categories = quote.categories || [];
-    categories.forEach(cat => {
-      const items = cat.items || [];
-      items.forEach(item => {
-        const totalProvider = item.subItems?.reduce((acc, sub) => acc + ((sub.unitCost || 0) * (sub.quantity || 0) * (sub.dates || 0)), 0) || 0;
-        const internalMultiplierAmount = totalProvider * ((item.internalMultiplierPercent || 0) / 100);
-        const financialExpense = totalProvider * ((item.financialExpensePercent || 0) / 100);
-
-        const rawCalculatedClientCost = totalProvider + internalMultiplierAmount + financialExpense;
-        const totalClient = Math.round(rawCalculatedClientCost);
-
-        subTotalClient += totalClient;
-      });
-    });
-
-    const feeAgencia = subTotalClient * 0.12; // 12% fee
-    const finalTotalClient = subTotalClient + feeAgencia;
-
-    return { subTotalClient, feeAgencia, finalTotalClient };
-  };
-
-  const totals = calculateTotals();
+  const totals = computeQuoteTotals(quote);
   const cur = quote.currency === 'USD' ? '$' : 'S/';
   const igvAmount = totals.finalTotalClient * 0.18;
   const totalWithIgv = totals.finalTotalClient * 1.18;
@@ -312,13 +290,10 @@ export const PrintCotizacionView: React.FC<PrintCotizacionViewProps> = ({ quoteI
                     </td>
                   </tr>
                   {(cat.items || []).map((item) => {
-                    const totalProvider = item.subItems?.reduce((acc, sub) => acc + ((sub.unitCost || 0) * (sub.quantity || 0) * (sub.dates || 0)), 0) || 0;
-                    const internalMultiplierAmount = totalProvider * ((item.internalMultiplierPercent || 0) / 100);
-                    const financialExpense = totalProvider * ((item.financialExpensePercent || 0) / 100);
-                    const rawCalculatedClientCost = totalProvider + internalMultiplierAmount + financialExpense;
-                    const itemTotalClient = Math.round(rawCalculatedClientCost);
-                    const qtyDates = ((item.quantity || 1) * (item.dates || 1)) || 1;
-                    const clientUnitCost = itemTotalClient / qtyDates;
+                    const { totalClient: itemTotalClient, unitClientCost: clientUnitCost } = computeQuoteItemFinancials(
+                      item,
+                      totals.providerCostMap
+                    );
 
                     return (
                       <tr key={item.id}>

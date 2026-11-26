@@ -8,7 +8,7 @@ import { AIImportModal } from './AIImportModal';
 import { ExcelQuoteImportModal } from './ExcelQuoteImportModal';
 import { SmartBriefDrawer } from './SmartBriefDrawer';
 import { CreateOrdenesMasivasModal } from './CreateOrdenesMasivasModal';
-import { Plus, ArrowLeft, Download, Save, Trash2, Copy, Mail, Sparkles, Folder, Building2, FileSpreadsheet, FileText, ChevronDown, MoreVertical, Package } from 'lucide-react';
+import { Plus, ArrowLeft, Download, Save, Trash2, Copy, Mail, Sparkles, Folder, Building2, FileSpreadsheet, FileText, ChevronDown, MoreVertical, Package, Zap } from 'lucide-react';
 import { useGlobalContext } from '../context/GlobalContext';
 import { EmailModal } from './EmailModal';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -17,6 +17,7 @@ import { SearchableProjectSelect } from './SearchableProjectSelect';
 import { buildQuoteClientUrl } from '../utils/clientLinks';
 import { API_URL } from '../utils/apiUrl';
 import { preserveQuoteNodeIds } from '../utils/liquidacionHelpers';
+import { computeQuoteTotals, computeQuoteItemFinancials, recalculateSpecialQuoteItems } from '../utils/quoteMathHelper';
 import toast from 'react-hot-toast';
 
 export const PAYMENT_CONDITIONS_OPTIONS = [
@@ -115,36 +116,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
   const [isTakingOver, setIsTakingOver] = useState(false);
 
   // Cálculos financieros y de rentabilidad
-  const calculateTotals = () => {
-    let subTotalProviders = 0;
-    let subTotalClient = 0;
-
-    const categories = quote.categories || [];
-    categories.forEach(cat => {
-      const items = cat.items || [];
-      items.forEach(item => {
-        const totalProvider = item.subItems.reduce((acc, sub) => acc + (sub.unitCost * sub.quantity * sub.dates), 0);
-        const internalMultiplierAmount = totalProvider * (item.internalMultiplierPercent / 100);
-        const financialExpense = totalProvider * (item.financialExpensePercent / 100);
-        
-        const rawCalculatedClientCost = totalProvider + internalMultiplierAmount + financialExpense;
-        const totalClient = Math.round(rawCalculatedClientCost);
-
-        subTotalProviders += totalProvider;
-        subTotalClient += totalClient;
-      });
-    });
-
-    const feeAgencia = subTotalClient * 0.12; // 12% fee
-    const finalTotalClient = subTotalClient + feeAgencia;
-
-    return {
-      subTotalProviders,
-      subTotalClient,
-      feeAgencia,
-      finalTotalClient
-    };
-  };
+  const calculateTotals = () => computeQuoteTotals(quote);
 
   const getClientName = (projectId?: string, quoteClient?: string) => {
     if (quoteClient) {
@@ -511,28 +483,33 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
   };
 
 
-  const handleUpdateItem = (categoryId: string, itemId: string, field: string, value: any) => {
+  const handleUpdateItem = (categoryId: string, itemId: string, fieldOrPatch: string | Partial<QuoteItem>, value?: any) => {
     setQuote(prev => {
-      const newQuote = { ...prev };
-      const category = newQuote.categories.find(c => c.id === categoryId);
+      const newQuote = JSON.parse(JSON.stringify(prev));
+      const category = newQuote.categories.find((c: any) => c.id === categoryId);
       if (category) {
-        const item = category.items.find(i => i.id === itemId);
+        const item = category.items.find((i: any) => i.id === itemId);
         if (item) {
-          (item as any)[field] = value;
+          if (typeof fieldOrPatch === 'object' && fieldOrPatch !== null) {
+            Object.assign(item, fieldOrPatch);
+          } else {
+            (item as any)[fieldOrPatch] = value;
+          }
         }
       }
+      newQuote.categories = recalculateSpecialQuoteItems(newQuote.categories);
       return newQuote;
     });
   };
 
   const handleUpdateSubItem = (categoryId: string, itemId: string, subId: string, fieldOrData: any, value?: any) => {
     setQuote(prev => {
-      const newQuote = { ...prev };
-      const category = newQuote.categories.find(c => c.id === categoryId);
+      const newQuote = JSON.parse(JSON.stringify(prev));
+      const category = newQuote.categories.find((c: any) => c.id === categoryId);
       if (category) {
-        const item = category.items.find(i => i.id === itemId);
+        const item = category.items.find((i: any) => i.id === itemId);
         if (item) {
-          const subItem = item.subItems.find(s => s.id === subId);
+          const subItem = item.subItems.find((s: any) => s.id === subId);
           if (subItem) {
             if (typeof fieldOrData === 'object' && fieldOrData !== null) {
               Object.assign(subItem, fieldOrData);
@@ -542,6 +519,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
           }
         }
       }
+      newQuote.categories = recalculateSpecialQuoteItems(newQuote.categories);
       return newQuote;
     });
   };
@@ -640,7 +618,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
           name: catName,
           items: importedItems.filter(p => Boolean(p?.item)).map(p => cloneItem(p.item, p.sourceQuoteDate, p.sourceProjectName))
         });
-        return { ...prev, categories: nextCategories };
+        return { ...prev, categories: recalculateSpecialQuoteItems(nextCategories) };
       }
 
       if (targetOption.mode === 'existing' && targetOption.targetCategoryId) {
@@ -649,7 +627,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
           nextCategories[targetIndex].items.push(
             ...importedItems.filter(p => Boolean(p?.item)).map(p => cloneItem(p.item, p.sourceQuoteDate, p.sourceProjectName))
           );
-          return { ...prev, categories: nextCategories };
+          return { ...prev, categories: recalculateSpecialQuoteItems(nextCategories) };
         }
       }
 
@@ -711,10 +689,10 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
         }))
       }));
       if (mode === 'replace') {
-        newQuote.categories = preserveQuoteNodeIds(prev.categories || [], mapped);
+        newQuote.categories = recalculateSpecialQuoteItems(preserveQuoteNodeIds(prev.categories || [], mapped));
         toast.success(`Cotización reemplazada: ${mapped.length} categoría${mapped.length !== 1 ? 's' : ''} importada${mapped.length !== 1 ? 's' : ''}`);
       } else {
-        newQuote.categories = [...newQuote.categories, ...mapped];
+        newQuote.categories = recalculateSpecialQuoteItems([...newQuote.categories, ...mapped]);
         const totalItems = mapped.reduce((a: number, c: any) => a + c.items.length, 0);
         toast.success(`✨ ${totalItems} ítem${totalItems !== 1 ? 's' : ''} agregado${totalItems !== 1 ? 's' : ''} desde IA`);
       }
@@ -754,10 +732,10 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
       }));
 
       if (mode === 'replace') {
-        newQuote.categories = preserveQuoteNodeIds(prev.categories || [], mapped);
+        newQuote.categories = recalculateSpecialQuoteItems(preserveQuoteNodeIds(prev.categories || [], mapped));
         toast.success(`Cotización actualizada: ${mapped.length} categoría(s) importada(s) desde Excel`);
       } else {
-        newQuote.categories = [...(newQuote.categories || []), ...mapped];
+        newQuote.categories = recalculateSpecialQuoteItems([...(newQuote.categories || []), ...mapped]);
         const totalItems = mapped.reduce((a: number, c: any) => a + c.items.length, 0);
         toast.success(`📊 ${totalItems} ítem${totalItems !== 1 ? 's' : ''} agregado${totalItems !== 1 ? 's' : ''} desde Excel`);
       }
@@ -783,12 +761,12 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
     if (window.confirm('¿Estás seguro de eliminar esta categoría y todos sus ítems?')) {
       setQuote(prev => ({
         ...prev,
-        categories: prev.categories.filter(c => c.id !== categoryId)
+        categories: recalculateSpecialQuoteItems(prev.categories.filter(c => c.id !== categoryId))
       }));
     }
   };
 
-  const handleAddItem = (categoryId?: string) => {
+  const handleAddItem = (categoryId?: string, isSpecial = false) => {
     setQuote(prev => {
       const newQuote = JSON.parse(JSON.stringify(prev)); // Deep clone
       
@@ -808,19 +786,33 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
       
       const cat = newQuote.categories.find((c: any) => c.id === targetCategoryId);
       if (cat) {
+        const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
         cat.items.push({
-          id: `item-${Date.now()}`,
-          name: 'Nuevo Ítem',
+          id: `item-${uid}`,
+          name: isSpecial ? 'APDAYC / Servicio Porcentual' : 'Nuevo Ítem',
           quantity: 1,
           dates: 1,
-          details: ['Detalle 1'],
-          internalMultiplierPercent: 10,
-          financialExpensePercent: 10,
+          details: [isSpecial ? 'Gestión / Derechos porcentuales sobre ítems seleccionados' : 'Detalle 1'],
+          internalMultiplierPercent: isSpecial ? 0 : 10,
+          financialExpensePercent: isSpecial ? 0 : 10,
+          isSpecial,
+          specialRatePercent: isSpecial ? 10 : undefined,
+          specialSourceItemIds: [],
           providerContact: '',
           productionTime: '',
           subItems: [
+            ...(isSpecial ? [{
+              id: `sub-sp-${uid}`,
+              name: 'APDAYC / Servicio Porcentual',
+              description: '',
+              quantity: 1,
+              dates: 1,
+              unitCost: 0,
+              providerName: '',
+              providerId: ''
+            }] : []),
             {
-              id: `sub-${Date.now()}-imprevisto`,
+              id: `sub-${uid}-imprevisto`,
               name: 'Imprevistos',
               quantity: 1,
               dates: 1,
@@ -831,6 +823,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
           ]
         });
       }
+      newQuote.categories = recalculateSpecialQuoteItems(newQuote.categories);
       return newQuote;
     });
   };
@@ -838,11 +831,12 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
   const handleDeleteItem = (categoryId: string, itemId: string) => {
     if (window.confirm('¿Estás seguro de eliminar este ítem?')) {
       setQuote(prev => {
-        const newQuote = { ...prev };
-        const category = newQuote.categories.find(c => c.id === categoryId);
+        const newQuote = JSON.parse(JSON.stringify(prev));
+        const category = newQuote.categories.find((c: any) => c.id === categoryId);
         if (category) {
-          category.items = category.items.filter(i => i.id !== itemId);
+          category.items = category.items.filter((i: any) => i.id !== itemId);
         }
+        newQuote.categories = recalculateSpecialQuoteItems(newQuote.categories);
         return newQuote;
       });
     }
@@ -873,6 +867,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
           }
         }
       }
+        newQuote.categories = recalculateSpecialQuoteItems(newQuote.categories);
       return newQuote;
     });
   };
@@ -888,6 +883,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
             item.subItems = item.subItems.filter((s: any) => s.id !== subId);
           }
         }
+        newQuote.categories = recalculateSpecialQuoteItems(newQuote.categories);
         return newQuote;
       });
     }
@@ -1332,6 +1328,14 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
           {!isReadOnly && (
             <div className="quote-detail-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <button className="btn-secondary" onClick={handleAddCategory} style={{ padding: '6px 12px', fontSize: '0.85rem' }}><Plus size={16} /> + Categoría</button>
+              <button
+                className="btn-secondary"
+                onClick={() => handleAddItem(undefined, true)}
+                style={{ padding: '6px 12px', fontSize: '0.85rem', borderColor: '#818cf8', color: '#4338ca', backgroundColor: '#eef2ff' }}
+                title="Agregar Ítem Especial que suma otros ítems (APDAYC, UNIMPRO, etc.)"
+              >
+                <Zap size={15} /> + Ítem Especial
+              </button>
               <button className="btn-primary" onClick={() => handleAddItem()} style={{ padding: '6px 12px', fontSize: '0.85rem' }}><Plus size={16} /> + Ítem</button>
             </div>
           )}
@@ -1349,7 +1353,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
               <th className="header-custom" style={{ width: '9%' }}>COSTO TOTAL<br/>PROVEEDORES</th>
               <th className="header-custom" style={{ width: '8%' }}>MULTIPLICADOR %<br/>INTERNO</th>
               <th className="header-custom" style={{ width: '8%' }}>% INTERNO</th>
-              <th className="header-custom" style={{ width: '8%' }}>GASTO FINANCIERO<br/>10%</th>
+              <th className="header-custom" style={{ width: '8%' }}>GASTO FINANCIERO<br/>%</th>
               <th className="header-custom" style={{ width: '9%' }}>COSTO X ITEM<br/>CLIENTE</th>
               <th className="header-custom" style={{ width: '9%' }}>COSTO TOTAL<br/>CLIENTE</th>
               <th className="header-custom" style={{ width: '4%' }}></th>
@@ -1361,7 +1365,7 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
                 <tr className="bg-gray-50 border-b border-gray-200" style={{ backgroundColor: 'rgba(0,0,0,0.03)' }}>
                   <td colSpan={12} style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)', fontWeight: 'bold', padding: '12px 24px', textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         <input 
                           type="text" 
                           value={category.name}
@@ -1371,10 +1375,18 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
                               categories: prev.categories.map(c => c.id === category.id ? { ...c, name: e.target.value } : c)
                             }));
                           }}
-                          style={{ background: 'transparent', border: '1px solid transparent', color: 'inherit', fontWeight: 'bold', fontSize: 'var(--text-base)', width: '300px', outline: 'none' }}
+                          style={{ background: 'transparent', border: '1px solid transparent', color: 'inherit', fontWeight: 'bold', fontSize: 'var(--text-base)', width: '280px', outline: 'none' }}
                         />
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: 'var(--text-xs)', background: 'rgba(255,255,255,0.1)' }} onClick={() => handleAddItem(category.id)}>
                           + Ítem
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: 'var(--text-xs)', background: '#eef2ff', color: '#4338ca', borderColor: '#c7d2fe' }}
+                          onClick={() => handleAddItem(category.id, true)}
+                          title="Añadir Ítem Especial (% sobre ítems)"
+                        >
+                          <Zap size={12} /> + Ítem Especial
                         </button>
                       </div>
                       <div style={{ display: 'flex', gap: '4px' }}>
@@ -1391,7 +1403,9 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
                     item={item} 
                     index={index} 
                     currency={quote.currency || 'PEN'}
-                    onUpdateItem={(itemId, field, value) => handleUpdateItem(category.id, itemId, field, value)}
+                    allCategories={quote.categories}
+                    providerCostMap={totals.providerCostMap}
+                    onUpdateItem={(itemId, fieldOrPatch, value) => handleUpdateItem(category.id, itemId, fieldOrPatch, value)}
                     onUpdateSubItem={(itemId, subId, field, value) => handleUpdateSubItem(category.id, itemId, subId, field, value)}
                     onMoveItem={(itemId, direction) => handleMoveItem(category.id, itemId, direction)}
                     onDeleteItem={(itemId) => handleDeleteItem(category.id, itemId)}
@@ -1486,32 +1500,38 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
                       onClick={() => setMobileEditItem({ categoryId: category.id, item })}
                       style={{ 
                         padding: '12px', 
-                        backgroundColor: 'var(--bg-secondary)', 
+                        backgroundColor: item.isSpecial ? '#f5f7ff' : 'var(--bg-secondary)', 
                         borderRadius: '8px',
-                        border: '1px solid rgba(0,0,0,0.05)',
+                        border: item.isSpecial ? '1px solid #c7d2fe' : '1px solid rgba(0,0,0,0.05)',
                         cursor: 'pointer'
                       }}
                     >
-                      <div style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}><span>{item.name || 'Nuevo Ítem sin nombre'}</span>{item.sourceQuoteDate && (<span style={{ fontSize: '0.72rem', backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px' }}>📅 Cotizado: {item.sourceQuoteDate}</span>)}</div>
+                      <div style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span>{item.name || 'Nuevo Ítem sin nombre'}</span>
+                        {item.isSpecial && (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, backgroundColor: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe', padding: '1px 6px', borderRadius: '4px' }}>
+                            ⚡ {item.specialRatePercent ?? 10}% s/ {(item.specialSourceItemIds || []).length} ítems
+                          </span>
+                        )}
+                        {item.sourceQuoteDate && (<span style={{ fontSize: '0.72rem', backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '1px 6px', borderRadius: '4px' }}>📅 Cotizado: {item.sourceQuoteDate}</span>)}
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Cant: {item.quantity} | Días: {item.dates}</span>
-                        <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>
-                          S/ {(() => {
-                            const totalProv = (item.subItems || []).reduce((acc, sub) => acc + (sub.quantity * sub.dates * sub.unitCost), 0);
-                            const margin = totalProv * ((item.internalMultiplierPercent || 0) / 100) + totalProv * ((item.financialExpensePercent || 0) / 100);
-                            const rawCost = totalProv + margin;
-                            const qtyDates = item.quantity * item.dates || 1;
-                            const unitCost = Math.round(rawCost / qtyDates);
-                            return (unitCost * qtyDates).toLocaleString('es-PE', { minimumFractionDigits: 2 });
-                          })()}
+                        <span style={{ fontWeight: 'bold', fontVariantNumeric: 'tabular-nums', color: 'var(--success)' }}>
+                          {currencySymbol} {computeQuoteItemFinancials(item, totals.providerCostMap).totalClient.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
                   ))}
 
-                  <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: '8px', padding: '12px', color: 'var(--accent-primary)' }} onClick={() => handleAddItem(category.id)}>
-                    <Plus size={18} /> Añadir Ítem
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    <button className="btn-secondary" style={{ flex: 1, minHeight: '44px', justifyContent: 'center', padding: '10px', color: 'var(--accent-primary)' }} onClick={() => handleAddItem(category.id)}>
+                      <Plus size={18} /> Añadir Ítem
+                    </button>
+                    <button className="btn-secondary" style={{ flex: 1, minHeight: '44px', justifyContent: 'center', padding: '10px', color: '#4338ca', borderColor: '#c7d2fe', backgroundColor: '#eef2ff' }} onClick={() => handleAddItem(category.id, true)}>
+                      <Zap size={16} /> Especial (%)
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1783,15 +1803,18 @@ export const CotizacionBuilder: React.FC<CotizacionBuilderProps> = ({ initialQuo
           isOpen={true}
           currency={quote.currency || 'PEN'}
           item={mobileEditItem.item}
+          allCategories={quote.categories}
           onClose={() => setMobileEditItem(null)}
           onSave={(updatedItem) => {
             setQuote(prev => ({
               ...prev,
-              categories: prev.categories.map(c => 
-                c.id === mobileEditItem.categoryId ? {
-                  ...c,
-                  items: c.items.map(i => i.id === updatedItem.id ? updatedItem : i)
-                } : c
+              categories: recalculateSpecialQuoteItems(
+                prev.categories.map(c => 
+                  c.id === mobileEditItem.categoryId ? {
+                    ...c,
+                    items: c.items.map(i => i.id === updatedItem.id ? updatedItem : i)
+                  } : c
+                )
               )
             }));
             setMobileEditItem(null);

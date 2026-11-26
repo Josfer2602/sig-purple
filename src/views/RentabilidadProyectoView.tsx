@@ -20,6 +20,7 @@ import { SkeletonTable } from '../components/SkeletonTable';
 import { useIsMobile } from '../hooks/useIsMobile';
 import type { Proyecto, Orden } from '../types/models';
 import { getOrderCostSinIgv as computeOrderCostSinIgv } from '../utils/liquidacionHelpers';
+import { computeQuoteTotals } from '../utils/quoteMathHelper';
 
 interface Props {
   onNavigate?: (module: string, itemId?: string) => void;
@@ -223,20 +224,7 @@ export const RentabilidadProyectoView: React.FC<Props> = ({ onNavigate }) => {
         });
 
         byReqMap.forEach(q => {
-          let subTotalClient = 0;
-          (q.categories || []).forEach((cat: any) => {
-            (cat.items || []).forEach((item: any) => {
-              const totalProvider = (item.subItems || []).reduce(
-                (acc: number, sub: any) => acc + ((Number(sub.unitCost) || 0) * (Number(sub.quantity) || 0) * (Number(sub.dates) || 0)),
-                0
-              );
-              const internalMultiplierAmount = totalProvider * ((Number(item.internalMultiplierPercent) || 0) / 100);
-              const financialExpense = totalProvider * ((Number(item.financialExpensePercent) || 0) / 100);
-              const rawClientCost = totalProvider + internalMultiplierAmount + financialExpense;
-              subTotalClient += Math.round(rawClientCost);
-            });
-          });
-          const totalWithFee = subTotalClient * 1.12;
+          const totalWithFee = computeQuoteTotals(q).finalTotalClient;
           const totalInSoles = q.currency === 'USD' ? totalWithFee * (Number(q.exchangeRate) || 3.75) : totalWithFee;
           calculatedFacturacionQuotes += totalInSoles;
         });

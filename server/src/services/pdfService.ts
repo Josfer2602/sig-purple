@@ -175,25 +175,45 @@ export async function closePdfBrowser(): Promise<void> {
 }
 
 /**
- * Cuando el frontend y la API viven en el mismo dominio, las vistas de impresión
- * deben consultar `/api/...` contra ese mismo dominio. Si el bundle quedó compilado
- * con una URL de API antigua (por ejemplo un dominio de Render/Vercel ya retirado),
- * redirigimos esas llamadas al origen actual para que el PDF siempre se genere.
+ * Puente para las vistas de impresión: cualquier llamada a `/api/...` que no
+ * apunte ya al origen real de la API se redirige a ese origen. Funciona tanto
+ * con frontend y API en el mismo dominio (VPS/nginx) como separados
+ * (Vercel + Render), y también cuando el bundle quedó compilado con un dominio
+ * antiguo o con una ruta relativa `/api` que el hosting del frontend no atiende.
  */
-const buildSameOriginApiBridgeScript = (apiOrigin: string) => `
+const buildApiOriginBridgeScript = (apiOrigin: string) => `
 (() => {
   try {
     var apiOrigin = ${JSON.stringify(apiOrigin)};
-    if (!apiOrigin || window.location.origin !== apiOrigin) return;
+    if (!apiOrigin) return;
 
-    function rewrite(input) {
+    // Si la API comparte host con la página, conservar el protocolo real de la página
+    try {
+      if (new URL(apiOrigin).host === window.location.host) {
+        apiOrigin = window.location.origin;
+      }
+    } catch (e) {}
+
+    function rewriteUrl(raw) {
+      if (!raw) return raw;
       try {
-        var raw = typeof input === 'string' ? input : (input && input.url) || '';
-        if (!raw) return input;
         var parsed = new URL(raw, window.location.href);
-        if (parsed.origin === apiOrigin) return input;
-        if (parsed.pathname.indexOf('/api/') !== 0) return input;
-        return parsed.pathname + parsed.search + parsed.hash;
+        var isApiPath = parsed.pathname === '/api' || parsed.pathname.indexOf('/api/') === 0;
+        if (!isApiPath) return raw;
+        if (parsed.origin === apiOrigin) return raw;
+        return apiOrigin + parsed.pathname + parsed.search + parsed.hash;
+      } catch (e) {
+        return raw;
+      }
+    }
+
+    function rewriteInput(input) {
+      var raw = typeof input === 'string' ? input : (input && input.url) || '';
+      var rewritten = rewriteUrl(raw);
+      if (rewritten === raw) return input;
+      if (typeof input === 'string') return rewritten;
+      try {
+        return new Request(rewritten, input);
       } catch (e) {
         return input;
       }
@@ -202,7 +222,7 @@ const buildSameOriginApiBridgeScript = (apiOrigin: string) => `
     if (window.fetch) {
       var nativeFetch = window.fetch.bind(window);
       window.fetch = function (input, init) {
-        return nativeFetch(rewrite(input), init);
+        return nativeFetch(rewriteInput(input), init);
       };
     }
 
@@ -210,7 +230,7 @@ const buildSameOriginApiBridgeScript = (apiOrigin: string) => `
       var nativeOpen = window.XMLHttpRequest.prototype.open;
       window.XMLHttpRequest.prototype.open = function (method, requestUrl) {
         var args = Array.prototype.slice.call(arguments);
-        args[1] = rewrite(requestUrl);
+        args[1] = rewriteUrl(requestUrl);
         return nativeOpen.apply(this, args);
       };
     }
@@ -235,7 +255,7 @@ const sanitizePdfUrlForLog = (raw: string): string => {
 export async function generatePdfFromUrl(
   url: string,
   prefix: string = 'document',
-  options?: { sameOriginApiOrigin?: string }
+  options?: { apiOrigin?: string }
 ): Promise<string> {
   activePdfJobs++;
   let page: Page | null = null;
@@ -246,8 +266,8 @@ export async function generatePdfFromUrl(
 
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
 
-    if (options?.sameOriginApiOrigin) {
-      await page.evaluateOnNewDocument(buildSameOriginApiBridgeScript(options.sameOriginApiOrigin));
+    if (options?.apiOrigin) {
+      await page.evaluateOnNewDocument(buildApiOriginBridgeScript(options.apiOrigin));
     }
 
     page.on('pageerror', (err: any) => {

@@ -180,6 +180,9 @@ model QuoteItem {
   details                   String // JSON string to store array of details
   internalMultiplierPercent Float
   financialExpensePercent   Float
+  isSpecial                 Boolean @default(false)
+  specialRatePercent        Float?  @default(10)
+  specialSourceItemIds      String?
   providerContact           String
   productionTime            String
   categoryId                String

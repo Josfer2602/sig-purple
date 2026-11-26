@@ -13,6 +13,7 @@ import { SkeletonTable } from '../components/SkeletonTable';
 import type { Proyecto } from '../types/models';
 import type { Quote } from '../types/quote';
 import { exportProyectosToExcel } from '../utils/excelExport';
+import { computeQuoteTotals } from '../utils/quoteMathHelper';
 import toast from 'react-hot-toast';
 
 const parseDateToTimestamp = (dateStr?: string | null): number => {
@@ -291,21 +292,7 @@ export const ProyectosView: React.FC = () => {
     if ((quote as any).total && typeof (quote as any).total === 'number') {
       return (quote as any).total;
     }
-    let subTotalClient = 0;
-    (quote.categories || []).forEach(cat => {
-      (cat.items || []).forEach(item => {
-        const totalProvider = (item.subItems || []).reduce(
-          (acc, sub) => acc + ((Number(sub.unitCost) || 0) * (Number(sub.quantity) || 0) * (Number(sub.dates) || 0)), 
-          0
-        );
-        const internalMultiplierAmount = totalProvider * ((Number(item.internalMultiplierPercent) || 0) / 100);
-        const financialExpense = totalProvider * ((Number(item.financialExpensePercent) || 0) / 100);
-        const rawClientCost = totalProvider + internalMultiplierAmount + financialExpense;
-        const totalClient = Math.round(rawClientCost);
-        subTotalClient += totalClient;
-      });
-    });
-    return subTotalClient * 1.12;
+    return computeQuoteTotals(quote).finalTotalClient;
   };
 
   const getQuoteTotalInSoles = (quote: Quote): number => {

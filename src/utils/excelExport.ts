@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { Cliente, Proyecto, Proveedor, Orden, Pago, FacturaCliente, GastoProduccion } from '../types/models';
 import type { Quote } from '../types/quote';
+import { computeQuoteTotals } from './quoteMathHelper';
 
 // Helper: Auto-ajustar ancho de columnas de acuerdo al contenido
 export const autoFitColumns = (worksheet: XLSX.WorkSheet, data: any[]) => {
@@ -28,7 +29,7 @@ const formatDate = (dateStr?: string | null) => {
     if (!isNaN(d.getTime())) {
       return d.toISOString().split('T')[0];
     }
-  } catch (e) {}
+  } catch (e) { }
   return String(dateStr).trim();
 };
 
@@ -71,24 +72,7 @@ const resolveProviderName = (providerId?: string, proveedores?: Proveedor[]): st
 
 // Helper: Calcular totales financieros de una cotización
 export const calculateQuoteFinancials = (quote: Quote, proyectos?: Proyecto[]) => {
-  let costoDirecto = 0;
-  let subTotalClient = 0;
-
-  (quote.categories || []).forEach(cat => {
-    (cat.items || []).forEach(item => {
-      const totalProvider = (item.subItems || []).reduce(
-        (acc, sub) => acc + ((Number(sub.unitCost) || 0) * (Number(sub.quantity) || 0) * (Number(sub.dates) || 0)), 
-        0
-      );
-      const internalMultiplierAmount = totalProvider * ((Number(item.internalMultiplierPercent) || 0) / 100);
-      const financialExpense = totalProvider * ((Number(item.financialExpensePercent) || 0) / 100);
-      const rawClientCost = totalProvider + internalMultiplierAmount + financialExpense;
-      const totalClient = Math.round(rawClientCost);
-
-      costoDirecto += totalProvider;
-      subTotalClient += totalClient;
-    });
-  });
+  const { subTotalProviders: costoDirecto, subTotalClient } = computeQuoteTotals(quote);
 
   let totalVenta = subTotalClient > 0 ? Math.round(subTotalClient * 1.12 * 100) / 100 : 0;
 
@@ -123,8 +107,8 @@ export interface QuoteDuplicateAnalysis {
 }
 
 export const analyzeQuoteDuplicates = (
-  allQuotes: Quote[], 
-  clientes?: Cliente[], 
+  allQuotes: Quote[],
+  clientes?: Cliente[],
   proyectos?: Proyecto[]
 ): Map<string, QuoteDuplicateAnalysis> => {
   const result = new Map<string, QuoteDuplicateAnalysis>();
@@ -248,7 +232,7 @@ export const generateClientesSheetData = (clientes: Cliente[], proyectos: Proyec
   return (clientes || []).map(c => {
     const proyectosVinculados = proyectos.filter(p => p.clienteId === c.id);
     const principalCargo = c.cargo || c.contactos?.find(ct => ct.esPrincipal)?.cargo || c.contactos?.[0]?.cargo || '-';
-    const contactosAdicionales = (c.contactos || []).map(ct => 
+    const contactosAdicionales = (c.contactos || []).map(ct =>
       `${ct.nombre}${ct.cargo ? ` (${ct.cargo})` : ''}${ct.email ? ` - ${ct.email}` : ''}${ct.telefono ? ` - ${ct.telefono}` : ''}`
     ).join('; ');
 
@@ -386,8 +370,8 @@ export const generateCotizacionesSheetData = (quotes: Quote[], proyectos: Proyec
     const projectName = resolveProjectName(q.projectId, proyectos);
     const totalItems = (q.categories || []).reduce((acc, cat) => acc + (cat.items?.length || 0), 0);
     const assignedProviders = Array.from(new Set(
-      (q.categories || []).flatMap(c => 
-        (c.items || []).flatMap(it => 
+      (q.categories || []).flatMap(c =>
+        (c.items || []).flatMap(it =>
           (it.subItems || []).map(s => s.providerName).filter(Boolean)
         )
       )
@@ -500,9 +484,9 @@ export const exportProveedoresToExcel = (proveedores: Proveedor[]) => {
 // 5. EXPORTAR ÓRDENES DE COMPRA Y SERVICIO
 // ==========================================
 export const generateOrdenesSheetData = (
-  ordenes: Orden[], 
-  proveedores: Proveedor[] = [], 
-  proyectos: Proyecto[] = [], 
+  ordenes: Orden[],
+  proveedores: Proveedor[] = [],
+  proyectos: Proyecto[] = [],
   clientes: Cliente[] = []
 ) => {
   return (ordenes || []).map(o => {
@@ -532,9 +516,9 @@ export const generateOrdenesSheetData = (
 };
 
 export const exportOrdenesToExcel = (
-  ordenes: Orden[], 
-  proveedores: Proveedor[] = [], 
-  proyectos: Proyecto[] = [], 
+  ordenes: Orden[],
+  proveedores: Proveedor[] = [],
+  proyectos: Proyecto[] = [],
   clientes: Cliente[] = []
 ) => {
   const data = generateOrdenesSheetData(ordenes, proveedores, proyectos, clientes);
@@ -550,9 +534,9 @@ export const exportOrdenesToExcel = (
 // 6. EXPORTAR PAGOS A PROVEEDORES
 // ==========================================
 export const generatePagosSheetData = (
-  pagos: Pago[], 
-  proveedores: Proveedor[] = [], 
-  proyectos: Proyecto[] = [], 
+  pagos: Pago[],
+  proveedores: Proveedor[] = [],
+  proyectos: Proyecto[] = [],
   ordenes: Orden[] = []
 ) => {
   return (pagos || []).map(p => {
@@ -584,9 +568,9 @@ export const generatePagosSheetData = (
 };
 
 export const exportPagosToExcel = (
-  pagos: Pago[], 
-  proveedores: Proveedor[] = [], 
-  proyectos: Proyecto[] = [], 
+  pagos: Pago[],
+  proveedores: Proveedor[] = [],
+  proyectos: Proyecto[] = [],
   ordenes: Orden[] = []
 ) => {
   const data = generatePagosSheetData(pagos, proveedores, proyectos, ordenes);
@@ -602,8 +586,8 @@ export const exportPagosToExcel = (
 // 7. EXPORTAR FACTURACIÓN CLIENTES
 // ==========================================
 export const generateFacturasSheetData = (
-  facturas: FacturaCliente[], 
-  proyectos: Proyecto[] = [], 
+  facturas: FacturaCliente[],
+  proyectos: Proyecto[] = [],
   clientes: Cliente[] = []
 ) => {
   return (facturas || []).map(f => {
@@ -635,8 +619,8 @@ export const generateFacturasSheetData = (
 };
 
 export const exportFacturasToExcel = (
-  facturas: FacturaCliente[], 
-  proyectos: Proyecto[] = [], 
+  facturas: FacturaCliente[],
+  proyectos: Proyecto[] = [],
   clientes: Cliente[] = []
 ) => {
   const data = generateFacturasSheetData(facturas, proyectos, clientes);
@@ -652,8 +636,8 @@ export const exportFacturasToExcel = (
 // 8. EXPORTAR GASTOS DE PRODUCCIÓN
 // ==========================================
 export const generateGastosSheetData = (
-  gastos: GastoProduccion[], 
-  proyectos: Proyecto[] = [], 
+  gastos: GastoProduccion[],
+  proyectos: Proyecto[] = [],
   clientes: Cliente[] = []
 ) => {
   return (gastos || []).map(g => {
@@ -686,8 +670,8 @@ export const generateGastosSheetData = (
 };
 
 export const exportGastosToExcel = (
-  gastos: GastoProduccion[], 
-  proyectos: Proyecto[] = [], 
+  gastos: GastoProduccion[],
+  proyectos: Proyecto[] = [],
   clientes: Cliente[] = []
 ) => {
   const data = generateGastosSheetData(gastos, proyectos, clientes);

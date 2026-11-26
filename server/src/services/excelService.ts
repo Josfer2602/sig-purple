@@ -14,11 +14,8 @@ export async function generateQuoteExcel(quote: any): Promise<Buffer> {
     path.join(__dirname, '../Plantilla Cotización.xlsm'),
     path.join(process.cwd(), 'Cotización.xlsm'),
     path.join(process.cwd(), 'Plantilla Cotización.xlsm'),
-    '/var/www/sigpurple/api/Cotización.xlsm',
-    '/var/www/sigpurple/api/Plantilla Cotización.xlsm',
-    '/var/www/sigpurple/api/dist/services/Cotización.xlsm',
-    '/var/www/sigpurple/api/dist/services/Plantilla Cotización.xlsm',
-    '/var/www/sigpurple/Plantilla Cotización.xlsm',
+    path.join(process.cwd(), 'server/Cotización.xlsm'),
+    path.join(process.cwd(), 'server/Plantilla Cotización.xlsm'),
     path.join(__dirname, '../../../Cotización Ejemplo.xlsm'),
     path.join(process.cwd(), 'Cotización Ejemplo.xlsm')
   ];
@@ -33,10 +30,16 @@ export async function generateQuoteExcel(quote: any): Promise<Buffer> {
   const randomSuffix = Math.random().toString(36).substring(2, 9);
   const outputPath = path.join(os.tmpdir(), `temp_excel_${timestamp}_${randomSuffix}.xlsm`);
   const jsonPath = path.join(os.tmpdir(), `temp_data_${timestamp}_${randomSuffix}.json`);
-  const scriptPath = path.join(__dirname, 'generate_excel.py');
+  const candidateScriptPaths = [
+    path.join(__dirname, 'generate_excel.py'),
+    path.join(__dirname, '../../src/services/generate_excel.py'),
+    path.join(process.cwd(), 'src/services/generate_excel.py'),
+    path.join(process.cwd(), 'server/src/services/generate_excel.py')
+  ];
+  const scriptPath = candidateScriptPaths.find(p => fs.existsSync(p));
 
-  if (!fs.existsSync(scriptPath)) {
-    throw new Error(`Script generate_excel.py no encontrado en: ${scriptPath}`);
+  if (!scriptPath) {
+    throw new Error(`Script generate_excel.py no encontrado en: ${candidateScriptPaths.join(', ')}`);
   }
 
   // Write JSON to temp file to avoid shell escaping issues
@@ -54,12 +57,30 @@ export async function generateQuoteExcel(quote: any): Promise<Buffer> {
     categories: (quote.categories || []).map((cat: any) => ({
       name: cat.name || '',
       items: (cat.items || []).map((item: any) => ({
+        id: item.id || '',
         name: item.name || '',
         quantity: typeof item.quantity === 'string' ? parseFloat(item.quantity.replace(',', '.')) || 0 : (item.quantity ?? 0),
         dates: typeof item.dates === 'string' ? parseFloat(item.dates.replace(',', '.')) || 0 : (item.dates ?? 0),
         details: item.details || '[]',
         internalMultiplierPercent: item.internalMultiplierPercent ?? 0,
         financialExpensePercent: item.financialExpensePercent ?? 10,
+        isSpecial: Boolean(item.isSpecial),
+        specialRatePercent: item.specialRatePercent !== undefined && item.specialRatePercent !== null
+          ? Number(item.specialRatePercent)
+          : (item.isSpecial ? 10 : undefined),
+        specialSourceItemIds: Array.isArray(item.specialSourceItemIds)
+          ? item.specialSourceItemIds
+          : (() => {
+            if (typeof item.specialSourceItemIds === 'string' && item.specialSourceItemIds.trim().startsWith('[')) {
+              try {
+                const parsed = JSON.parse(item.specialSourceItemIds);
+                return Array.isArray(parsed) ? parsed : [];
+              } catch {
+                return [];
+              }
+            }
+            return [];
+          })(),
         providerContact: item.providerContact || '',
         productionTime: item.productionTime || '',
         subItems: (item.subItems || []).map((sub: any) => ({
@@ -92,8 +113,8 @@ export async function generateQuoteExcel(quote: any): Promise<Buffer> {
   const buffer = fs.readFileSync(outputPath);
 
   // Cleanup
-  try { fs.unlinkSync(outputPath); } catch (_) {}
-  try { fs.unlinkSync(jsonPath); } catch (_) {}
+  try { fs.unlinkSync(outputPath); } catch (_) { }
+  try { fs.unlinkSync(jsonPath); } catch (_) { }
 
   return buffer;
 }
@@ -109,8 +130,8 @@ export async function parseQuoteExcel(buffer: Buffer): Promise<{ metadata: any; 
     path.join(__dirname, '../services/parse_quote_excel.py'),
     path.join(process.cwd(), 'server/src/services/parse_quote_excel.py'),
     path.join(process.cwd(), 'src/services/parse_quote_excel.py'),
-    '/var/www/sigpurple/api/dist/services/parse_quote_excel.py',
-    '/var/www/sigpurple/api/src/services/parse_quote_excel.py'
+    path.join(process.cwd(), 'server/dist/services/parse_quote_excel.py'),
+    path.join(process.cwd(), 'dist/services/parse_quote_excel.py')
   ];
   const scriptPath = candidateScriptPaths.find(p => fs.existsSync(p));
   if (!scriptPath) {
@@ -136,8 +157,8 @@ export async function parseQuoteExcel(buffer: Buffer): Promise<{ metadata: any; 
     const result = JSON.parse(jsonStr);
     return result;
   } finally {
-    try { fs.unlinkSync(inputPath); } catch (_) {}
-    try { fs.unlinkSync(outputPath); } catch (_) {}
+    try { fs.unlinkSync(inputPath); } catch (_) { }
+    try { fs.unlinkSync(outputPath); } catch (_) { }
   }
 }
 

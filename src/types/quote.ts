@@ -27,6 +27,9 @@ export interface QuoteItem {
   subItems: QuoteSubItem[];
   internalMultiplierPercent: number; // % Multiplicador Interno
   financialExpensePercent: number; // % Gasto Financiero (ej. 10%)
+  isSpecial?: boolean; // Ítem especial calculado como % de otros ítems (ej. APDAYC / UNIMPRO)
+  specialRatePercent?: number; // % aplicado sobre la suma del Costo Proveedores de los ítems seleccionados
+  specialSourceItemIds?: string[]; // IDs de los ítems cuyos Costos Totales Proveedores se suman
   providerContact: string;
   productionTime: string;
   sourceQuoteDate?: string;

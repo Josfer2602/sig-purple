@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node --transpile-only src/index.ts",
     "start": "node dist/index.js",
-    "build": "npx prisma generate && node -e \"if(process.env.RENDER){try{require('child_process').execSync('npx puppeteer browsers install chrome',{stdio:'inherit'})}catch(e){console.warn('Puppeteer install warning:',e.message)}}\" && tsc",
+    "build": "npx prisma generate && node -e \"if(process.env.RENDER){try{require('child_process').execSync('pip3 install openpyxl --break-system-packages || pip3 install openpyxl || pip install openpyxl',{stdio:'inherit'})}catch(e){console.warn('Pip install openpyxl warning:',e.message)};try{require('child_process').execSync('npx puppeteer browsers install chrome',{stdio:'inherit'})}catch(e){console.warn('Puppeteer install warning:',e.message)}}\" && tsc && node -e \"const fs=require('fs'),p=require('path');fs.mkdirSync('dist/services',{recursive:true});for(const f of ['generate_excel.py','parse_quote_excel.py']){const src=p.join('src','services',f);if(fs.existsSync(src))fs.copyFileSync(src,p.join('dist','services',f));}\"",
     "seed": "ts-node seedLiquidaciones.ts",
     "seed:history": "ts-node seedHistory.ts"
   },

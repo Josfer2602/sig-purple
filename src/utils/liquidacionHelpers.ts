@@ -1,5 +1,6 @@
 import type { Quote, QuoteCategory } from '../types/quote';
 import type { Orden, OrdenSubItem, Pago, GastoProduccion, GastoProduccionItem, Proveedor } from '../types/models';
+import { computeQuoteTotals, parseSpecialSourceItemIds, recalculateSpecialQuoteItems } from './quoteMathHelper';
 
 const ORDER_NAME_PREFIXES = [
   'venta de ',
@@ -240,23 +241,7 @@ export function calculateQuoteMetrics(
   proveedores: Proveedor[],
   allQuotes: Quote[]
 ) {
-  let totalCostoProveedor = 0;
-  let totalCostoCliente = 0;
-
-  (q.categories || []).forEach(cat => {
-    (cat.items || []).forEach(item => {
-      const itemTotalProvider = (item.subItems || []).reduce(
-        (acc, sub) => acc + (Number(sub.unitCost) || 0) * (Number(sub.quantity) || 0) * (Number(sub.dates) || 0),
-        0
-      );
-      totalCostoProveedor += itemTotalProvider;
-
-      const internalMultiplierAmount = itemTotalProvider * ((Number(item.internalMultiplierPercent) || 0) / 100);
-      const financialExpense = itemTotalProvider * ((Number(item.financialExpensePercent) || 0) / 100);
-      const rawCalculatedClientCost = itemTotalProvider + internalMultiplierAmount + financialExpense;
-      totalCostoCliente += Math.round(rawCalculatedClientCost);
-    });
-  });
+  const { subTotalProviders: totalCostoProveedor, subTotalClient: totalCostoCliente } = computeQuoteTotals(q);
 
   const ordenesRelacionadas = ordenes.filter(o => isOrdenRelatedToQuote(o, q, allQuotes));
   const gastosRelacionados = gastosProduccion.filter(g => isGastoRelatedToQuote(g, q, allQuotes));
@@ -575,13 +560,14 @@ export function preserveQuoteNodeIds(
   previousCategories: QuoteCategory[] = [],
   nextCategories: QuoteCategory[] = []
 ): QuoteCategory[] {
-  if (!previousCategories.length) return nextCategories;
+  if (!previousCategories.length) return recalculateSpecialQuoteItems(nextCategories);
 
   const usedCatIds = new Set<string>();
   const usedItemIds = new Set<string>();
   const usedSubIds = new Set<string>();
+  const remappedItemIds = new Map<string, string>();
 
-  return nextCategories.map(newCat => {
+  const firstPass = nextCategories.map(newCat => {
     const newCatName = normalizeText(newCat.name);
     const matchedCat = previousCategories.find(
       oldCat => oldCat.id && !usedCatIds.has(oldCat.id) && normalizeText(oldCat.name) === newCatName
@@ -595,7 +581,10 @@ export function preserveQuoteNodeIds(
       const matchedItem = oldItemsPool.find(
         oldItem => oldItem.id && !usedItemIds.has(oldItem.id) && normalizeText(oldItem.name) === newItemName
       );
-      if (matchedItem?.id) usedItemIds.add(matchedItem.id);
+      if (matchedItem?.id) {
+        usedItemIds.add(matchedItem.id);
+        if (newItem.id) remappedItemIds.set(newItem.id, matchedItem.id);
+      }
 
       const oldSubsPool = matchedItem?.subItems || oldItemsPool.flatMap(it => it.subItems || []);
 
@@ -620,4 +609,15 @@ export function preserveQuoteNodeIds(
       items: mappedItems
     };
   });
+
+  const remappedSpecials = firstPass.map(cat => ({
+    ...cat,
+    items: (cat.items || []).map(item => {
+      if (!item.isSpecial) return item;
+      const refs = parseSpecialSourceItemIds(item.specialSourceItemIds).map(id => remappedItemIds.get(id) || id);
+      return { ...item, specialSourceItemIds: refs };
+    })
+  }));
+
+  return recalculateSpecialQuoteItems(remappedSpecials);
 }

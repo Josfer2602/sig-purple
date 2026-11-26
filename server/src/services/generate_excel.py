@@ -392,6 +392,17 @@ if rows_to_insert > 0:
 for r in range(10, 10 + max(total_rows, available_rows)):
     clear_row_values(ws_interna, r, col_count=28)
 
+# Pre-compute exact row positions in Cotizacion Interna so Special Items can reference ANY item row
+pre_row = 10
+item_by_id = {}
+for cat in categories:
+    pre_row += 1  # Category Header row
+    for item in cat.get('items', []):
+        item['_interna_row'] = pre_row
+        if item.get('id'):
+            item_by_id[str(item.get('id'))] = item
+        pre_row += 1
+
 current_row = 10
 item_counter = 1
 
@@ -421,17 +432,40 @@ for cat in categories:
             desc_cell.value = details_text
             desc_cell.alignment = Alignment(wrap_text=True, vertical='center')
 
-        # Link to Detalle Proveedor
-        g9_row = item.get('g9_row')
-        if g9_row:
-            safe_set(ws_interna, r, 10, f"='Cot Interna - Detalle Proveedor'!G{g9_row}")
+        is_special = bool(item.get('isSpecial'))
+        src_ids = item.get('specialSourceItemIds') or []
+        src_rows = []
+        if is_special and isinstance(src_ids, list):
+            seen_sr = set()
+            for sid in src_ids:
+                sid_str = str(sid or '').strip()
+                if not sid_str or sid_str == str(item.get('id', '')):
+                    continue
+                target_it = item_by_id.get(sid_str)
+                if target_it and target_it.get('_interna_row') and target_it['_interna_row'] not in seen_sr:
+                    seen_sr.add(target_it['_interna_row'])
+                    src_rows.append(target_it['_interna_row'])
 
-        # Formulas
-        safe_set(ws_interna, r, 11, f"=G{r}*H{r}*J{r}")
-        mult_pct = item.get('internalMultiplierPercent', 0) or 0
+        if is_special and len(src_rows) > 0:
+            rate_raw = item.get('specialRatePercent')
+            rate_pct = 10.0 if rate_raw is None else float(rate_raw)
+            sum_expr = '+'.join(f"K{sr}" for sr in src_rows)
+            safe_set(ws_interna, r, 11, f"=ROUND(({sum_expr})*{rate_pct/100:.6g},2)")
+            safe_set(ws_interna, r, 10, f"=IFERROR(K{r}/G{r}/H{r},0)")
+        else:
+            # Link to Detalle Proveedor
+            g9_row = item.get('g9_row')
+            if g9_row:
+                safe_set(ws_interna, r, 10, f"='Cot Interna - Detalle Proveedor'!G{g9_row}")
+            # Formulas
+            safe_set(ws_interna, r, 11, f"=G{r}*H{r}*J{r}")
+
+        mult_raw = item.get('internalMultiplierPercent')
+        mult_pct = 0.0 if mult_raw is None else float(mult_raw)
         safe_set(ws_interna, r, 12, mult_pct / 100 if mult_pct else 0)
         safe_set(ws_interna, r, 13, f"=K{r}*L{r}")
-        fin_pct = item.get('financialExpensePercent', 10) or 10
+        fin_raw = item.get('financialExpensePercent')
+        fin_pct = 10.0 if fin_raw is None else float(fin_raw)
         safe_set(ws_interna, r, 14, f"=K{r}*{fin_pct/100}")
         safe_set(ws_interna, r, 15, f"=IFERROR(P{r}/G{r}/H{r},0)")
         safe_set(ws_interna, r, 16, f"=ROUND(K{r}+M{r}+N{r},0)")

@@ -23,6 +23,9 @@ export const getApiUrl = (): string => {
 
     // In production builds or standard web ports without custom VITE_API_URL, use same-origin relative '/api'
     if (import.meta.env.PROD || port === 80 || port === 443) {
+      if (hostname.includes('vercel.app')) {
+        return 'https://sig-purple-api.onrender.com/api';
+      }
       return '/api';
     }
 

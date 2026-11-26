@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
 import type { Quote } from '../types/quote';
+import { parseSpecialSourceItemIds, recalculateSpecialQuoteItems } from '../utils/quoteMathHelper';
 import type { Cliente, Proyecto, Proveedor, Orden, Pago, AppConfig, ListasDinamicas, ProjectGantt, ProjectBook, GastoProduccion, User, FacturaCliente } from '../types/models';
 
 export type UserRole = 'Directorio' | 'Cuentas' | 'Producción' | 'Admin' | 'Contabilidad';
@@ -92,13 +93,8 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   });
 
   // --- FUNCIONES DE LIMPIEZA (EVITAN PANTALLA ROJA) ---
-  const sanitizeQuote = (q: any): Quote => ({
-    ...q,
-    id: String(q?.id || ''),
-    requirement: String(q?.requirement || ''),
-    client: String(q?.client || ''),
-    brand: String(q?.brand || ''),
-    categories: (q?.categories || []).filter(Boolean).map((cat: any) => ({
+  const sanitizeQuote = (q: any): Quote => {
+    const rawCategories = (q?.categories || []).filter(Boolean).map((cat: any) => ({
       ...cat,
       name: String(cat?.name || 'CATEGORÍA'),
       items: (cat?.items || []).filter(Boolean).map((it: any) => ({
@@ -107,6 +103,11 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         name: String(it?.name || 'Ítem'),
         quantity: Number(it?.quantity || 1),
         dates: Number(it?.dates || 1),
+        isSpecial: Boolean(it?.isSpecial),
+        specialRatePercent: it?.specialRatePercent !== undefined && it?.specialRatePercent !== null
+          ? Number(it.specialRatePercent)
+          : (it?.isSpecial ? 10 : undefined),
+        specialSourceItemIds: parseSpecialSourceItemIds(it?.specialSourceItemIds),
         details: Array.isArray(it?.details)
           ? it.details
           : (() => {
@@ -124,8 +125,16 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           dates: Number(s?.dates || 1)
         }))
       }))
-    }))
-  });
+    }));
+    return {
+      ...q,
+      id: String(q?.id || ''),
+      requirement: String(q?.requirement || ''),
+      client: String(q?.client || ''),
+      brand: String(q?.brand || ''),
+      categories: recalculateSpecialQuoteItems(rawCategories)
+    };
+  };
 
   const sanitizeOrden = (o: any): Orden => ({
     ...o,
@@ -205,12 +214,30 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const fetchData = async () => {
     if (!token) return;
     setIsLoading(true);
+    let sessionInvalidated = false;
+
     const safeFetch = async (endpoint: string, retries = 2): Promise<any> => {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
           const res = await fetch(`${API_URL}/${endpoint}`, { headers: getHeaders() });
           if (res.ok) {
             return await res.json();
+          }
+          if (res.status === 401 || res.status === 403) {
+            const errBody = await res.json().catch(() => ({} as any));
+            const errMsg = String(errBody?.error || '');
+            const isSessionError =
+              res.status === 401 ||
+              errMsg.toLowerCase().includes('sesión expirada') ||
+              errMsg.toLowerCase().includes('token inválido');
+            if (isSessionError) {
+              if (!sessionInvalidated) {
+                sessionInvalidated = true;
+                toast.error('Tu sesión expiró o pertenece a otro entorno. Inicia sesión nuevamente.');
+                logout();
+              }
+              return [];
+            }
           }
           console.warn(`[safeFetch] ${endpoint} returned status ${res.status} (attempt ${attempt + 1}/${retries + 1})`);
         } catch (e) {

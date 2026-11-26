@@ -418,39 +418,42 @@ const resolveUserEmail = (req: any): string | undefined => {
 };
 
 /**
- * Devuelve el origen público de la web SOLO cuando coincide con el host por el
- * que responde la API (frontend y backend bajo el mismo dominio, por ejemplo
- * nginx sirviendo /api en el mismo host). Las vistas de impresión usan este
- * dato para redirigir llamadas /api/* compiladas con un dominio antiguo hacia
- * el mismo origen desde el que se cargó la página.
+ * Devuelve el origen público real de la API (Render, VPS con nginx, etc.).
+ * Las vistas de impresión lo usan para reconducir cualquier llamada `/api/*`
+ * del bundle publicado hacia la API correcta, aunque el frontend esté en otro
+ * dominio (Vercel + Render) o el bundle apunte a un dominio retirado.
  */
-const resolveSameOriginApiOrigin = (req: any): string | undefined => {
+const resolvePrintApiOrigin = (req: any): string | undefined => {
   const firstHeaderValue = (value: any): string => {
     const raw = Array.isArray(value) ? value[0] : value;
     return typeof raw === 'string' ? raw.split(',')[0].trim() : '';
   };
 
-  const apiHost = firstHeaderValue(req?.headers?.['x-forwarded-host']) || firstHeaderValue(req?.headers?.host);
-  if (!apiHost) return undefined;
-
-  const pageOriginFrom = (raw: string): string | undefined => {
-    if (!raw || raw === 'null') return undefined;
+  const originFromUrl = (raw: string): string | undefined => {
+    if (!raw) return undefined;
     try {
-      const parsed = new URL(raw);
-      return parsed.host === apiHost ? parsed.origin : undefined;
+      const parsed = new URL(raw.includes('://') ? raw : `https://${raw}`);
+      return parsed.origin;
     } catch {
       return undefined;
     }
   };
 
-  const fromOrigin = pageOriginFrom(firstHeaderValue(req?.headers?.origin));
-  if (fromOrigin) return fromOrigin;
+  // Render expone RENDER_EXTERNAL_URL; permite además un dominio público propio.
+  const explicitOrigin = originFromUrl(
+    firstHeaderValue(process.env.PUBLIC_API_URL || process.env.API_PUBLIC_URL || process.env.RENDER_EXTERNAL_URL)
+  );
+  if (explicitOrigin) return explicitOrigin;
 
-  const fromReferer = pageOriginFrom(firstHeaderValue(req?.headers?.referer));
-  if (fromReferer) return fromReferer;
+  const apiHost = firstHeaderValue(req?.headers?.['x-forwarded-host']) || firstHeaderValue(req?.headers?.host);
+  if (!apiHost) return undefined;
 
-  // Si no hay cabeceras de navegador, solo usar FRONTEND_URL cuando apunte al mismo host de la API
-  return pageOriginFrom((process.env.FRONTEND_URL || '').trim());
+  const forwardedProto = firstHeaderValue(req?.headers?.['x-forwarded-proto']).toLowerCase();
+  const proto = forwardedProto === 'https' || forwardedProto === 'http'
+    ? forwardedProto
+    : (apiHost.includes('onrender.com') ? 'https' : (req?.secure ? 'https' : 'http'));
+
+  return originFromUrl(`${proto}://${apiHost}`);
 };
 
 // --- AUTH ---
@@ -654,14 +657,125 @@ function isQuoteStatusForSubtotal(status?: string | null): boolean {
   return s.includes('enviad') || s.includes('aprobad') || s.includes('liquidad');
 }
 
+const parseSpecialSourceItemIdsServer = (raw: unknown): string[] => {
+  let arr: unknown[] = [];
+  if (Array.isArray(raw)) arr = raw;
+  else if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) arr = parsed;
+    } catch {
+      arr = [];
+    }
+  }
+  return Array.from(new Set(arr.map((v) => String(v || '').trim()).filter(Boolean)));
+};
+
+function resolveQuoteItemProviderCostsServer(categories: any[]): Map<string, number> {
+  const itemById = new Map<string, any>();
+  for (const cat of categories || []) {
+    for (const item of cat?.items || []) {
+      if (item?.id) itemById.set(String(item.id), item);
+    }
+  }
+  const resolved = new Map<string, number>();
+  const calc = (item: any, visiting: Set<string>): number => {
+    const id = item?.id ? String(item.id) : '';
+    if (id && resolved.has(id)) return resolved.get(id)!;
+    if (!item?.isSpecial) {
+      const val = (item?.subItems || []).reduce((acc: number, sub: any) =>
+        acc + (parseFloat(String(sub.unitCost || 0).replace(',', '.')) * parseFloat(String(sub.quantity || 0).replace(',', '.')) * parseFloat(String(sub.dates || 0).replace(',', '.'))), 0);
+      if (id) resolved.set(id, val);
+      return val;
+    }
+    if (id && visiting.has(id)) return 0;
+    const next = new Set(visiting);
+    if (id) next.add(id);
+    const srcIds = parseSpecialSourceItemIdsServer(item.specialSourceItemIds);
+    let srcSum = 0;
+    for (const srcId of srcIds) {
+      if (srcId === id) continue;
+      const src = itemById.get(srcId);
+      if (src) srcSum += calc(src, next);
+    }
+    const rate = Number(item.specialRatePercent ?? 0) || 0;
+    const val = Number((srcSum * (rate / 100)).toFixed(2));
+    if (id) resolved.set(id, val);
+    return val;
+  };
+  for (const cat of categories || []) {
+    for (const item of cat?.items || []) calc(item, new Set());
+  }
+  return resolved;
+}
+
+function normalizeQuoteCategoriesForPersistence(categories: any[], generateFreshIds: boolean): any[] {
+  const idMap = new Map<string, string>();
+  const firstPass = (categories || []).map((cat: any) => {
+    const catId = generateFreshIds
+      ? crypto.randomUUID()
+      : ((typeof cat.id === 'string' && cat.id.trim()) ? cat.id.trim() : crypto.randomUUID());
+    const items = (cat.items || []).map((item: any) => {
+      const origId = typeof item.id === 'string' && item.id.trim() ? item.id.trim() : '';
+      const nextId = generateFreshIds ? crypto.randomUUID() : (origId || crypto.randomUUID());
+      if (origId) idMap.set(origId, nextId);
+      return { ...item, id: nextId };
+    });
+    return { ...cat, id: catId, items };
+  });
+
+  const validItemIds = new Set<string>();
+  firstPass.forEach((cat: any) => cat.items.forEach((it: any) => validItemIds.add(it.id)));
+
+  const remapped = firstPass.map((cat: any) => ({
+    ...cat,
+    items: cat.items.map((item: any) => {
+      const rawRefs = parseSpecialSourceItemIdsServer(item.specialSourceItemIds);
+      const mappedRefs = rawRefs
+        .map((r) => idMap.get(r) || r)
+        .filter((r) => r !== item.id && validItemIds.has(r));
+      return {
+        ...item,
+        isSpecial: Boolean(item.isSpecial),
+        specialRatePercent: item.isSpecial
+          ? (item.specialRatePercent !== undefined && item.specialRatePercent !== null ? Number(item.specialRatePercent) : 10)
+          : (item.specialRatePercent !== undefined && item.specialRatePercent !== null ? Number(item.specialRatePercent) : null),
+        specialSourceItemIds: mappedRefs
+      };
+    })
+  }));
+
+  const costMap = resolveQuoteItemProviderCostsServer(remapped);
+  return remapped.map((cat: any) => ({
+    ...cat,
+    items: cat.items.map((item: any) => {
+      if (!item.isSpecial) return item;
+      const computedCost = Number((costMap.get(item.id) ?? 0).toFixed(2));
+      const subs = Array.isArray(item.subItems) ? item.subItems : [];
+      const nonImp = subs.filter((s: any) => !String(s?.name || '').toLowerCase().includes('imprevisto'));
+      const imp = subs.find((s: any) => String(s?.name || '').toLowerCase().includes('imprevisto'));
+      const baseSub = nonImp.length > 0
+        ? { ...nonImp[0], name: nonImp[0].name || item.name || 'Servicio porcentual', quantity: 1, dates: 1, unitCost: computedCost }
+        : { name: item.name || 'Servicio porcentual', description: '', quantity: 1, dates: 1, unitCost: computedCost, providerName: '', providerId: null };
+      const syncedImp = imp
+        ? { ...imp, quantity: 1, dates: 1, unitCost: 0 }
+        : { name: 'Imprevistos', description: '', quantity: 1, dates: 1, unitCost: 0, providerName: '', providerId: null };
+      return { ...item, subItems: [baseSub, syncedImp] };
+    })
+  }));
+}
+
 function calculateQuoteTotalInSoles(categories: any[], currency?: string | null, exchangeRate?: number | null): number {
+  const providerCostMap = resolveQuoteItemProviderCostsServer(categories || []);
   let subTotalClient = 0;
   for (const cat of categories || []) {
     const items = cat.items || [];
     for (const item of items) {
-      const subItems = item.subItems || [];
-      const totalProvider = subItems.reduce((acc: number, sub: any) =>
-        acc + (parseFloat(String(sub.unitCost).replace(',', '.')) * parseFloat(String(sub.quantity).replace(',', '.')) * parseFloat(String(sub.dates).replace(',', '.'))), 0);
+      const itemId = item?.id ? String(item.id) : '';
+      const totalProvider = item?.isSpecial && itemId && providerCostMap.has(itemId)
+        ? providerCostMap.get(itemId)!
+        : (item.subItems || []).reduce((acc: number, sub: any) =>
+            acc + (parseFloat(String(sub.unitCost).replace(',', '.')) * parseFloat(String(sub.quantity).replace(',', '.')) * parseFloat(String(sub.dates).replace(',', '.'))), 0);
       const internalMultiplierAmount = totalProvider * (Number(item.internalMultiplierPercent) / 100);
       const financialExpense = totalProvider * (Number(item.financialExpensePercent) / 100);
       const rawCalculatedClientCost = totalProvider + internalMultiplierAmount + financialExpense;
@@ -1813,18 +1927,24 @@ app.post('/api/quotes', authenticateToken, async (req: any, res: any) => {
       exchangeRate: quoteData.exchangeRate !== undefined ? Number(quoteData.exchangeRate) : 1.0,
       includeIgv: Boolean(quoteData.includeIgv)
     };
+    const normalizedCategories = normalizeQuoteCategoriesForPersistence(categories || [], true);
     const result = await prisma.quote.create({
       data: {
         ...cleanData,
         categories: {
-          create: (categories || []).map((cat: any) => ({
+          create: normalizedCategories.map((cat: any) => ({
+            id: cat.id,
             name: cat.name,
             items: {
               create: (cat.items || []).map((item: any) => ({
+                id: item.id,
                 name: item.name || '', quantity: Math.round(parseFloat(String(item.quantity).replace(',', '.'))) || 0, dates: Math.round(parseFloat(String(item.dates).replace(',', '.'))) || 0,
                 details: typeof item.details === 'string' ? item.details : JSON.stringify(item.details || []),
                 internalMultiplierPercent: Number(item.internalMultiplierPercent) || 0,
                 financialExpensePercent: Number(item.financialExpensePercent) || 0,
+                isSpecial: Boolean(item.isSpecial),
+                specialRatePercent: item.specialRatePercent !== undefined && item.specialRatePercent !== null ? Number(item.specialRatePercent) : null,
+                specialSourceItemIds: JSON.stringify(item.specialSourceItemIds || []),
                 providerContact: item.providerContact || '',
                 productionTime: item.productionTime || '',
                 subItems: {
@@ -2102,8 +2222,9 @@ app.put('/api/quotes/:id', authenticateToken, async (req: any, res: any) => {
     const targetProjectId = cleanData.projectId || oldQuote?.projectId;
 
     if (categories) {
+      const normalizedCategories = normalizeQuoteCategoriesForPersistence(categories, false);
       const cleanId = (id?: any) => (typeof id === 'string' && id.trim().length > 0) ? id.trim() : undefined;
-      for (const cat of categories) {
+      for (const cat of normalizedCategories) {
         await prisma.quoteCategory.create({
           data: {
             id: cleanId(cat.id),
@@ -2114,6 +2235,9 @@ app.put('/api/quotes/:id', authenticateToken, async (req: any, res: any) => {
                 name: i.name || '', quantity: Number(i.quantity) || 0, dates: Number(i.dates) || 0,
                 details: typeof i.details === 'string' ? i.details : JSON.stringify(i.details || []),
                 internalMultiplierPercent: Number(i.internalMultiplierPercent) || 0, financialExpensePercent: Number(i.financialExpensePercent) || 0,
+                isSpecial: Boolean(i.isSpecial),
+                specialRatePercent: i.specialRatePercent !== undefined && i.specialRatePercent !== null ? Number(i.specialRatePercent) : null,
+                specialSourceItemIds: JSON.stringify(i.specialSourceItemIds || []),
                 providerContact: i.providerContact || '',
                 productionTime: i.productionTime || '',
                 subItems: {
@@ -2477,7 +2601,7 @@ async function uploadOrdenPdfToDrive(ordenId: string, req?: any): Promise<any> {
     pdfPath = await generatePdfFromUrl(
       `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
       `orden_${orden.id}`,
-      { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+      { apiOrigin: resolvePrintApiOrigin(req) }
     );
 
     const tipoDoc = orden.tipoOrden ? orden.tipoOrden.toUpperCase() : 'COMPRA';
@@ -2555,7 +2679,7 @@ async function uploadPagoPdfToDriveWithArtifact(
     pdfPath = await generatePdfFromUrl(
       `${baseUrl}/?printPago=${pago.id}&token=${reqToken}`,
       `pago_${pago.id}`,
-      { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+      { apiOrigin: resolvePrintApiOrigin(req) }
     );
 
     const provName = (pago.proveedor?.razonSocial || pago.proveedor?.nombre || '').trim();
@@ -3055,7 +3179,7 @@ app.get('/api/ordenes/:id/pdf', authenticateToken, async (req: any, res: any) =>
     pdfPath = await generatePdfFromUrl(
       `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
       `orden_${orden.id}`,
-      { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+      { apiOrigin: resolvePrintApiOrigin(req) }
     );
 
     const tipoDoc = orden.tipoOrden ? orden.tipoOrden.toUpperCase() : 'COMPRA';
@@ -3148,7 +3272,7 @@ app.post('/api/ordenes/send-email', authenticateToken, async (req: any, res: any
           const pdfPath = await generatePdfFromUrl(
             `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
             `orden_${orden.id}`,
-            { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+            { apiOrigin: resolvePrintApiOrigin(req) }
           );
           generatedPdfs.push(pdfPath);
           const cleanTipo = orden.tipoOrden ? orden.tipoOrden.toUpperCase() : 'COMPRA';
@@ -3246,7 +3370,7 @@ app.post('/api/ordenes/send-email', authenticateToken, async (req: any, res: any
           pdfPath = await generatePdfFromUrl(
             `${baseUrl}/?printOrden=${orden.id}&token=${reqToken}`,
             `orden_${orden.id}`,
-            { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) }
+            { apiOrigin: resolvePrintApiOrigin(req) }
           );
           generatedPdfs.push(pdfPath);
 
@@ -3395,7 +3519,7 @@ async function resolveDocumentPdfForEmail(params: {
   }
 
   try {
-    const genPath = await generatePdfFromUrl(printUrl, prefix, { sameOriginApiOrigin: resolveSameOriginApiOrigin(req) });
+    const genPath = await generatePdfFromUrl(printUrl, prefix, { apiOrigin: resolvePrintApiOrigin(req) });
     if (genPath && fs.existsSync(genPath)) {
       return {
         buffer: fs.readFileSync(genPath),
@@ -4435,7 +4559,7 @@ const PRINT_SAFE_CONFIG_SELECT = {
   listasDinamicas: true
 };
 
-app.get('/api/print/orden/:id', optionalAuthenticateToken, async (req, res) => {
+app.get('/api/print/orden/:id', authenticateToken, async (req, res) => {
   const o = await prisma.orden.findUnique({ where: { id: req.params.id }, include: { items: true } });
   const [prov, cli, proy, cfg] = await Promise.all([
     prisma.proveedor.findUnique({ where: { id: o?.proveedorId }, include: { cuentas: true } }),
@@ -4446,7 +4570,7 @@ app.get('/api/print/orden/:id', optionalAuthenticateToken, async (req, res) => {
   res.json({ orden: o, proveedor: prov, cliente: cli, proyecto: proy, config: cfg });
 });
 
-app.get('/api/print/pago/:id', optionalAuthenticateToken, async (req, res) => {
+app.get('/api/print/pago/:id', authenticateToken, async (req, res) => {
   const p = await prisma.pago.findUnique({ where: { id: req.params.id } });
   const [o, prov, cli, proy, cfg] = await Promise.all([
     prisma.orden.findUnique({ where: { id: p?.ordenId }, include: { items: true } }),
