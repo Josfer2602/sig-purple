@@ -14,6 +14,10 @@ export const getApiUrl = (): string => {
     const envUrl = import.meta.env.VITE_API_URL;
     if (envUrl && envUrl !== 'undefined' && envUrl.trim() !== '') {
       let finalUrl = envUrl.trim();
+      // If Vercel has the old VPS URL configured, override it with Render
+      if (finalUrl.includes('devlian.de') || finalUrl.includes('2.28.38.66') || finalUrl.includes('sigpurple')) {
+        finalUrl = 'https://sig-purple-api.onrender.com/api';
+      }
       // If browsing from a mobile/network IP (e.g. 192.168.18.8) and env has localhost, replace it with current hostname
       if (isRemote && (finalUrl.includes('localhost') || finalUrl.includes('127.0.0.1'))) {
         finalUrl = finalUrl.replace('localhost', hostname).replace('127.0.0.1', hostname);
