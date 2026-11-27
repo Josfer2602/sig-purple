@@ -55,4 +55,10 @@ uploads/SIG_Purple_Backup_*.json
 *.xlsm
 *.xlsx
 !public/Plantilla_*.xlsx
+!server/**/Cotizaci*.xlsm
+!server/**/Plantilla*.xlsm
+!server/Cotizaci*.xlsm
+!server/Plantilla*.xlsm
+!Cotizaci*.xlsm
+!Plantilla*.xlsm
 
