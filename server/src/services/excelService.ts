@@ -13,10 +13,16 @@ export async function generateQuoteExcel(quote: any): Promise<Buffer> {
     path.join(__dirname, 'Plantilla Cotización.xlsm'),
     path.join(__dirname, '../Cotización.xlsm'),
     path.join(__dirname, '../Plantilla Cotización.xlsm'),
+    path.join(__dirname, '../services/Cotización.xlsm'),
+    path.join(__dirname, '../services/Plantilla Cotización.xlsm'),
     path.join(process.cwd(), 'Cotización.xlsm'),
     path.join(process.cwd(), 'Plantilla Cotización.xlsm'),
     path.join(process.cwd(), 'server/Cotización.xlsm'),
     path.join(process.cwd(), 'server/Plantilla Cotización.xlsm'),
+    path.join(process.cwd(), 'dist/services/Cotización.xlsm'),
+    path.join(process.cwd(), 'dist/services/Plantilla Cotización.xlsm'),
+    path.join(process.cwd(), 'server/dist/services/Cotización.xlsm'),
+    path.join(process.cwd(), 'server/dist/services/Plantilla Cotización.xlsm'),
     path.join(__dirname, '../../../Cotización Ejemplo.xlsm'),
     path.join(process.cwd(), 'Cotización Ejemplo.xlsm')
   ];
@@ -33,9 +39,12 @@ export async function generateQuoteExcel(quote: any): Promise<Buffer> {
   const jsonPath = path.join(os.tmpdir(), `temp_data_${timestamp}_${randomSuffix}.json`);
   const candidateScriptPaths = [
     path.join(__dirname, 'generate_excel.py'),
+    path.join(__dirname, '../services/generate_excel.py'),
     path.join(__dirname, '../../src/services/generate_excel.py'),
     path.join(process.cwd(), 'src/services/generate_excel.py'),
-    path.join(process.cwd(), 'server/src/services/generate_excel.py')
+    path.join(process.cwd(), 'server/src/services/generate_excel.py'),
+    path.join(process.cwd(), 'dist/services/generate_excel.py'),
+    path.join(process.cwd(), 'server/dist/services/generate_excel.py')
   ];
   const scriptPath = candidateScriptPaths.find(p => fs.existsSync(p));
 
