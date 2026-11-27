@@ -685,39 +685,4 @@ wb.calculation.fullCalcOnLoad = True
 
 wb.save(output_path)
 
-# ─── 5. Restore original drawings and template assets (buttons, macros, media) ──
-try:
-    with zipfile.ZipFile(template_path, 'r') as z_tmpl:
-        tmpl_files = {item.filename: item for item in z_tmpl.infolist()}
-        d1_bytes = z_tmpl.read('xl/drawings/drawing1.xml') if 'xl/drawings/drawing1.xml' in tmpl_files else None
-        d2_bytes = z_tmpl.read('xl/drawings/drawing2.xml') if 'xl/drawings/drawing2.xml' in tmpl_files else None
-
-        temp_zip = output_path + '.tmp'
-        with zipfile.ZipFile(output_path, 'r') as z_in:
-            existing_names = set(z_in.namelist())
-            with zipfile.ZipFile(temp_zip, 'w', compression=zipfile.ZIP_DEFLATED) as z_out:
-                for item in z_in.infolist():
-                    if item.filename == 'xl/drawings/drawing1.xml' and d1_bytes:
-                        z_out.writestr(item, d1_bytes)
-                    elif item.filename == 'xl/drawings/drawing2.xml' and d2_bytes:
-                        z_out.writestr(item, d2_bytes)
-                    else:
-                        z_out.writestr(item, z_in.read(item.filename))
-
-                # Inject any missing assets from template dropped by openpyxl (e.g. xl/media/image3.png, drawing3.xml, printerSettings)
-                for fname, item in tmpl_files.items():
-                    if fname not in existing_names:
-                        # Skip generated worksheets, calcChain, and sharedStrings
-                        if fname.startswith('xl/worksheets/sheet') and fname.endswith('.xml'):
-                            continue
-                        if fname in ('xl/calcChain.xml', 'xl/sharedStrings.xml'):
-                            continue
-                        if fname.startswith('xl/worksheets/_rels/sheet') and fname in existing_names:
-                            continue
-                        z_out.writestr(item, z_tmpl.read(fname))
-
-        os.replace(temp_zip, output_path)
-except Exception as e:
-    print(f"WARN: Error restoring drawing buttons: {e}", file=sys.stderr)
-
 print(f"OK:{output_path}")
